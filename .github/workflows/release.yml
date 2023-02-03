@@ -6,7 +6,7 @@ jobs:
   build_matrix:
     strategy:
       matrix:
-       # Maybe we want to have executables for all platforms just to test this?
+        # Maybe we want to have executables for all platforms just to test this?
         os: [ubuntu-latest]
         rust: [stable]
     runs-on: ${{ matrix.os }}
@@ -19,14 +19,18 @@ jobs:
         with:
           command: build
           args: --release --all-features
+      - shell: bash
+        run: |
+          mkdir artifacts
+          mv ./target/release/cotevalentines ./artifacts
       - name: Run UPX
         uses: crazy-max/ghaction-upx@v2
         with:
           version: latest
           files: |
-            ./target/release/cotevalentines*
+            ./artifacts/cotevalentines
           # args: -fq
       - uses: actions/upload-artifact@v3
         with:
           name: Cotevalentine-Binary
-          path: ./target/release/cotevalentines*
+          path: ./artifacts/cotevalentines*
