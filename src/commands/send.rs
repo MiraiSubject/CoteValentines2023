@@ -1,5 +1,3 @@
-use crate::db::model::{Letter as DbLetter, User as DbUser};
-use crate::db::Database;
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::prelude::command::CommandOptionType;
 use serenity::model::prelude::interaction::application_command::{
@@ -14,24 +12,48 @@ pub struct ValentineLetter {
     pub anon: bool,
 }
 
-impl ValentineLetter {
-    pub fn to_db_letter(&self) -> DbLetter {
-        DbLetter {
-            anon: self.anon.clone(),
-            recipient: self.recipient.clone(),
-            content: self.letter.clone(),
-        }
+enum LetterAddError {
+    UserHasTwoLetters,
+    DatabaseProblem,
+}
+
+use diesel::prelude::*;
+fn add_letter_to_user(
+    conn: &mut SqliteConnection,
+    letter: &ValentineLetter,
+) -> Result<(), LetterAddError> {
+    use crate::model::*;
+    use crate::schema::letters::dsl::*;
+
+    let letter_count: i64 = letters
+        .filter(sender.eq(&letter.sender))
+        .count()
+        .get_result(conn)
+        .map_err(|_| LetterAddError::DatabaseProblem)?;
+
+    if letter_count >= 2 {
+        Err(LetterAddError::UserHasTwoLetters)
+    } else {
+        let letter = NewLetter {
+            sender: &letter.sender,
+            recipient: &letter.recipient,
+            anon: letter.anon,
+            content: &letter.letter,
+        };
+
+        diesel::insert_into(letters)
+            .values(&letter)
+            .execute(conn)
+            .map_err(|_| LetterAddError::DatabaseProblem)?;
+        Ok(())
     }
 }
 
-pub fn run<DB>(
+pub fn run(
     options: &[CommandDataOption],
     user: &User,
-    user_db: DB,
-) -> Result<(ValentineLetter, String), String>
-where
-    DB: Database<DbUser>,
-{
+    db_conn: &mut SqliteConnection,
+) -> Result<(ValentineLetter, String), String> {
     let recipient = options
         .get(0)
         .expect("No recipient found")
@@ -73,14 +95,6 @@ where
     let letter = as_string(letter).unwrap();
     let is_anon = as_boolean(anon_option).unwrap();
 
-    // println!("The letter they sent is: {}", letter);
-    // println!("{} sent Valentine's Letter to {}", user.name, recipient);
-    // if *is_anon {
-    //     println!("This user sent the message anonymously");
-    // } else {
-    //     println!("This dude did not send the message anonymously");
-    // }
-
     let letter = ValentineLetter {
         sender: user.name.clone(),
         recipient: recipient.to_string(),
@@ -88,34 +102,16 @@ where
         anon: *is_anon,
     };
 
-    user_db
-        .get(&user.id.to_string())
-        .map_or_else(
-            // if the user doesnt exist, create a new user
-            |_| {
-                dbg!("user doesnt exist yet");
-                Ok(DbUser {
-                    user_id: user.id.to_string(),
-                    letters: (Some(letter.to_db_letter()), None),
-                })
-            },
-            // if the user exists, try to add the new letter to the user
-            |user| user.letter_added(letter.to_db_letter()),
-        )
-        .map(|user| {
-            // if the letter can be (and was) added to the user
-            dbg!(&user);
-            // save the user object:
-            user_db.save(&user).map_err(|_| "boohoo").unwrap();
+    add_letter_to_user(db_conn, &letter)
+        .map(|_| {
             (
                 letter,
-                "Thank you for your message, it as been recorded".to_owned(),
+                "Thank you for your message, it has been recorded.".to_owned(),
             )
         })
-        .map_err(|_| {
-            dbg!("user already has 2 letters");
-            // if the user already has two letters
-            "You have already sent two messages.".to_owned()
+        .map_err(|e| match e {
+            LetterAddError::UserHasTwoLetters => "You have already sent two messages.".to_owned(),
+            LetterAddError::DatabaseProblem => "Something went very wrong.".to_owned(),
         })
 }
 
