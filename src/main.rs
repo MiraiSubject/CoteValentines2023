@@ -3,13 +3,14 @@ mod model;
 pub mod schema;
 
 use commands::log_letters::log_letter;
-use diesel::Connection;
 use diesel::r2d2::{ConnectionManager, Pool};
-use diesel::sqlite::{SqliteConnection, Sqlite};
+use diesel::sqlite::{Sqlite, SqliteConnection};
+use diesel::Connection;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
-fn run_migrations(connection: &mut impl MigrationHarness<Sqlite>) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
-
+fn run_migrations(
+    connection: &mut impl MigrationHarness<Sqlite>,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
     // This will run the necessary migrations.
     //
     // See the documentation for `MigrationHarness` for
@@ -20,6 +21,9 @@ fn run_migrations(connection: &mut impl MigrationHarness<Sqlite>) -> Result<(), 
 }
 
 use dotenv::dotenv;
+use serenity::futures::TryFutureExt;
+use serenity::model::prelude::command::Command;
+use serenity::model::prelude::CommandId;
 use std::env;
 
 use serenity::async_trait;
@@ -60,7 +64,7 @@ impl EventHandler for Handler {
                 .create_interaction_response(&ctx.http, |response| {
                     response
                         .kind(InteractionResponseType::ChannelMessageWithSource)
-                        .interaction_response_data(|message| message.content(content))
+                        .interaction_response_data(|message| message.content(content).ephemeral(true))
                 })
                 .await
             {
@@ -72,17 +76,22 @@ impl EventHandler for Handler {
     async fn ready(&self, ctx: Context, ready: Ready) {
         println!("{} is connected!", ready.user.name);
 
-        let guild_id = GuildId(
-            env::var("GUILD_ID")
-                .expect("Expected GUILD_ID in environment")
-                .parse()
-                .expect("GUILD_ID must be an integer"),
-        );
+        // let guild_id = GuildId(
+        //     env::var("GUILD_ID")
+        //         .expect("Expected GUILD_ID in environment")
+        //         .parse()
+        //         .expect("GUILD_ID must be an integer"),
+        // );
 
-        let commands = GuildId::set_application_commands(&guild_id, &ctx.http, |commands| {
-            commands
-                // .create_application_command(|command| commands::ping::register(command))
-                .create_application_command(|command| commands::send::register(command))
+        // guild_id
+        //     .delete_application_command(&ctx.http, CommandId(1070794475665891348))
+        //     .unwrap_or_else(|f| {
+        //         println!("Shit's fucked {}", f.to_string());
+        //     })
+        //     .await;
+
+        let commands = Command::create_global_application_command(&ctx.http, |command| {
+            commands::send::register(command)
         })
         .await;
 

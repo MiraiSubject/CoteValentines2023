@@ -1,4 +1,5 @@
 use serenity::builder::CreateApplicationCommand;
+use serenity::model::Permissions;
 use serenity::model::prelude::command::CommandOptionType;
 use serenity::model::prelude::interaction::application_command::{
     CommandDataOption, CommandDataOptionValue,
@@ -143,4 +144,6 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
                 .kind(CommandOptionType::Boolean)
                 .required(true)
         })
+        .dm_permission(true)
+        .default_member_permissions(Permissions::SEND_MESSAGES)
 }
