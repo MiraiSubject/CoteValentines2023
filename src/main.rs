@@ -3,8 +3,21 @@ mod model;
 pub mod schema;
 
 use commands::log_letters::log_letter;
+use diesel::Connection;
 use diesel::r2d2::{ConnectionManager, Pool};
-use diesel::sqlite::SqliteConnection;
+use diesel::sqlite::{SqliteConnection, Sqlite};
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
+fn run_migrations(connection: &mut impl MigrationHarness<Sqlite>) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
+
+    // This will run the necessary migrations.
+    //
+    // See the documentation for `MigrationHarness` for
+    // all available methods.
+    connection.run_pending_migrations(MIGRATIONS)?;
+
+    Ok(())
+}
 
 use dotenv::dotenv;
 use std::env;
@@ -87,6 +100,9 @@ async fn main() {
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
 
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+
+    run_migrations(&mut SqliteConnection::establish(&database_url).unwrap()).unwrap();
+
     // Build our client.
     let mut client = Client::builder(token, GatewayIntents::empty())
         .event_handler(Handler {
