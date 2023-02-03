@@ -1,0 +1,32 @@
+on: [push]
+
+name: CI
+
+jobs:
+  build_matrix:
+    strategy:
+      matrix:
+       # Maybe we want to have executables for all platforms just to test this?
+        os: [ubuntu-latest]
+        rust: [stable]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --all-features
+      - name: Run UPX
+        uses: crazy-max/ghaction-upx@v2
+        with:
+          version: latest
+          files: |
+            ./target/release/cotevalentines*
+          # args: -fq
+      - uses: actions/upload-artifact@v3
+        with:
+          name: Cotevalentine-Binary
+          path: ./target/release/cotevalentines*
