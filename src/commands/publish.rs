@@ -3,6 +3,7 @@ use diesel::SqliteConnection;
 use serenity::builder::CreateEmbed;
 use serenity::model::prelude::ChannelType;
 
+use serenity::model::prelude::interaction::InteractionResponseType;
 use serenity::{
     builder::CreateApplicationCommand,
     model::{
@@ -51,19 +52,36 @@ pub async fn run(
             return Err("Bad channel type".to_owned())
         };
 
-        let ten_seconds = Duration::from_millis(4000);
+        // first, deferred reply to be allowed to take longer:
+        command
+            .create_interaction_response(ctx, |response| {
+                response.kind(InteractionResponseType::DeferredChannelMessageWithSource)
+            })
+            .await
+            .map_err(|_| "cant send a response???")?;
 
-        for letter in letters
+        let found_letters = letters
             .load::<Letter>(db_conn)
-            .map_err(|_| "database error".to_owned())?
-        {
-            let channel_id = channel.id;
-            channel_id
-                .broadcast_typing(&ctx.http)
-                .await
-                .map_err(|e| format!("Error sending typing event.\n ```{e:?}```"))?;
+            .map_err(|_| "database error".to_owned())?;
 
-            sleep(ten_seconds).await;
+        
+        const MAX_RUNTIME: Duration = Duration::from_secs(60 * 10);
+        const MAX_DELAY_PER_LETTER: Duration = Duration::from_secs(5);
+
+        let max_delay = MAX_DELAY_PER_LETTER.min(Duration::from_millis(
+            (MAX_RUNTIME.as_millis() / found_letters.len() as u128) as u64,
+        ));
+
+        let channel_id = channel.id;
+
+        let typing = channel_id
+            .start_typing(&ctx.http)
+            .map_err(|e| format!("Error sending typing event.\n ```{e:?}```"))?;
+
+        for letter in found_letters {
+            // wait a bit
+            sleep(max_delay).await;
+            // send embed and stop typing
 
             let ret = channel_id
                 .send_message(ctx, |m| m.embed(|embed| letter.build_embed(embed)))
@@ -73,7 +91,14 @@ pub async fn run(
             dbg!(ret);
         }
 
-        Ok(Some("done".to_owned()))
+        let _ = typing.stop();
+
+        command
+            .edit_original_interaction_response(ctx, |edit| edit.content("Done"))
+            .await
+            .unwrap();
+
+        Ok(None)
     } else {
         Err("No channel found".to_owned())
     }
