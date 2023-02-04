@@ -2,7 +2,7 @@ use diesel::prelude::*;
 use diesel::SqliteConnection;
 use serenity::builder::CreateEmbed;
 use serenity::model::prelude::ChannelType;
-use serenity::prelude::Context;
+
 use serenity::{
     builder::CreateApplicationCommand,
     model::{
@@ -14,6 +14,7 @@ use serenity::{
         },
         Permissions,
     },
+    prelude::Context,
 };
 use tokio::time::{sleep, Duration};
 
@@ -36,7 +37,7 @@ pub async fn run(
     command: &ApplicationCommandInteraction,
     ctx: &Context,
     db_conn: &mut SqliteConnection,
-) -> Result<String, String> {
+) -> Result<Option<String>, String> {
     if let CommandDataOptionValue::Channel(channel) = command
         .data
         .options
@@ -70,9 +71,9 @@ pub async fn run(
                 .map_err(|e| format!("Error sending a message:\n```{e:?}```"))?;
 
             dbg!(ret);
-        };
+        }
 
-        Ok("done".to_owned())
+        Ok(Some("done".to_owned()))
     } else {
         Err("No channel found".to_owned())
     }

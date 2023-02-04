@@ -2,13 +2,11 @@ pub mod commands;
 pub mod model;
 pub mod schema;
 
-use commands::log_letters::log_letter;
-use commands::publish;
-
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::sqlite::{Sqlite, SqliteConnection};
 use diesel::Connection;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
 fn run_migrations(
     connection: &mut impl MigrationHarness<Sqlite>,
@@ -23,18 +21,15 @@ fn run_migrations(
 }
 
 use dotenv::dotenv;
-use serenity::futures::TryFutureExt;
-use serenity::model::prelude::command::Command;
-use serenity::model::prelude::CommandId;
 use std::env;
 
 use serenity::async_trait;
 use serenity::model::application::interaction::{Interaction, InteractionResponseType};
 use serenity::model::gateway::Ready;
-use serenity::model::id::GuildId;
+use serenity::model::prelude::command::Command;
 use serenity::prelude::*;
 
-struct Handler {
+pub struct Handler {
     db_pool: Pool<ConnectionManager<SqliteConnection>>,
 }
 
@@ -44,39 +39,31 @@ impl EventHandler for Handler {
         if let Interaction::ApplicationCommand(command) = interaction {
             // println!("Received command interaction: {:#?}", command);
 
-            let content = match command.data.name.as_str() {
+            use commands::*;
+
+            let result = match command.data.name.as_str() {
                 // "ping" => commands::ping::run(&command.data.options),
-                "sendletter" => {
-                    match commands::send::run(
-                        &command.data.options,
-                        &command.user,
-                        &mut self.db_pool.get().unwrap(),
-                    ) {
-                        Ok((letter, message)) => {
-                            log_letter(&ctx, &letter).await;
-                            message
-                        }
-                        Err(message) => message,
-                    }
-                }
-                "publish" => publish::run(&command, &ctx, &mut self.db_pool.get().unwrap())
-                    .await
-                    .map_or_else(|e| e, |m| m),
-                _ => "not implemented :(".to_string(),
+                "sendletter" => send::run(&command, &ctx, &mut self.db_pool.get().unwrap()).await,
+                "publish" => publish::run(&command, &ctx, &mut self.db_pool.get().unwrap()).await,
+                _ => Err("command not found".to_string()),
             };
 
-            if let Err(why) = command
-                .create_interaction_response(&ctx.http, |response| {
-                    response
-                        .kind(InteractionResponseType::ChannelMessageWithSource)
-                        .interaction_response_data(|message| {
-                            message.content(content).ephemeral(true)
-                        })
-                })
-                .await
-            {
-                println!("Cannot respond to slash command: {}", why);
-            }
+            match result {
+                Ok(None) => (),
+                Ok(Some(content)) | Err(content) => {
+                    if let Err(why) = command
+                        .create_interaction_response(&ctx.http, |response| {
+                            response
+                                .kind(InteractionResponseType::ChannelMessageWithSource)
+                                .interaction_response_data(|message| {
+                                    message.content(content).ephemeral(true)
+                                })
+                        }).await
+                    {
+                        println!("Cannot respond to slash command: {}", why);
+                    }
+                }
+            };
         }
     }
 
@@ -99,8 +86,8 @@ impl EventHandler for Handler {
 
         let commands = Command::set_global_application_commands(&ctx.http, |commands| {
             commands
-            .create_application_command(|command| commands::send::register(command))
-            .create_application_command(|command| commands::publish::register(command))
+                .create_application_command(|command| commands::send::register(command))
+                .create_application_command(|command| commands::publish::register(command))
         })
         .await;
 
