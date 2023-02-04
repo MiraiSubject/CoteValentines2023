@@ -1,6 +1,5 @@
 use diesel::prelude::*;
 
-
 use serenity::{
     builder::CreateApplicationCommand,
     model::{
@@ -11,7 +10,8 @@ use serenity::{
             },
         },
         Permissions,
-    }, prelude::Context,
+    },
+    prelude::Context,
 };
 
 use crate::commands::log_letters::log_letter;
@@ -48,35 +48,45 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
         .default_member_permissions(Permissions::SEND_MESSAGES)
 }
 
-fn add_letter_to_user(
+fn user_can_send_letter(
     conn: &mut SqliteConnection,
     letter: &ValentineLetter,
-) -> Result<(), LetterAddError> {
-    use crate::model::*;
+) -> Result<(), CanSend> {
     use crate::schema::letters::dsl::*;
 
     let letter_count: i64 = letters
         .filter(sender.eq(&letter.sender))
         .count()
         .get_result(conn)
-        .map_err(|_| LetterAddError::DatabaseProblem)?;
+        .map_err(|_| CanSend::DatabaseProblem)?;
 
     if letter_count >= 2 {
-        Err(LetterAddError::UserHasTwoLetters)
+        Err(CanSend::UserHasTwoLetters)
     } else {
-        let letter = NewLetter {
-            sender: &letter.sender,
-            recipient: &letter.recipient,
-            anon: letter.anon,
-            content: &letter.letter,
-        };
-
-        diesel::insert_into(letters)
-            .values(&letter)
-            .execute(conn)
-            .map_err(|_| LetterAddError::DatabaseProblem)?;
         Ok(())
     }
+}
+
+fn add_letter_to_user(
+    conn: &mut SqliteConnection,
+    letter: &ValentineLetter,
+) -> Result<(), DatabaseError> {
+    use crate::model::*;
+    use crate::schema::letters::dsl::*;
+
+    let letter = NewLetter {
+        sender: &letter.sender,
+        recipient: &letter.recipient,
+        anon: letter.anon,
+        content: &letter.letter,
+    };
+
+    diesel::insert_into(letters)
+        .values(&letter)
+        .execute(conn)
+        .map_err(|_| DatabaseError::DatabaseProblem)?;
+
+    Ok(())
 }
 
 pub async fn run(
@@ -135,12 +145,24 @@ pub async fn run(
         anon: *is_anon,
     };
 
+    let can_send = user_can_send_letter(db_conn, &letter);
+
+    let response = match can_send {
+        Ok(_) => "Thank you for your message, it has been recorded.".to_owned(),
+        Err(e) => match e {
+            DatabaseError::UserHasTwoLetters => "You have already sent two messages.".to_owned(),
+            DatabaseError::DatabaseProblem => "Something went very wrong.".to_owned(),
+        },
+    };
+
     add_letter_to_user(db_conn, &letter).map_err(|e| match e {
-        LetterAddError::UserHasTwoLetters => "You have already sent two messages.".to_owned(),
-        LetterAddError::DatabaseProblem => "Something went very wrong.".to_owned(),
+        DatabaseError::UserHasTwoLetters => "You have already sent two messages.".to_owned(),
+        DatabaseError::DatabaseProblem => "Something went very wrong.".to_owned(),
     })?;
     log_letter(ctx, &letter).await;
-    Ok(Some("Thank you for your message, it has been recorded.".to_owned()))
+    Ok(Some(
+        "Thank you for your message, it has been recorded.".to_owned(),
+    ))
 }
 
 pub struct ValentineLetter {
@@ -150,7 +172,12 @@ pub struct ValentineLetter {
     pub anon: bool,
 }
 
-enum LetterAddError {
+enum CanSend {
+    UserHasTwoLetters,
+    DatabaseProblem
+}
+
+enum DatabaseError {
     UserHasTwoLetters,
     DatabaseProblem,
 }
