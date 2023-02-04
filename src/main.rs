@@ -23,15 +23,12 @@ fn run_migrations(
 }
 
 use dotenv::dotenv;
-use serenity::futures::TryFutureExt;
 use serenity::model::prelude::command::Command;
-use serenity::model::prelude::CommandId;
 use std::env;
 
 use serenity::async_trait;
 use serenity::model::application::interaction::{Interaction, InteractionResponseType};
 use serenity::model::gateway::Ready;
-use serenity::model::id::GuildId;
 use serenity::prelude::*;
 
 struct Handler {
