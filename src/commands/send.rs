@@ -1,24 +1,53 @@
-use serenity::builder::CreateApplicationCommand;
-use serenity::model::Permissions;
-use serenity::model::prelude::command::CommandOptionType;
-use serenity::model::prelude::interaction::application_command::{
-    CommandDataOption, CommandDataOptionValue,
-};
-use serenity::model::user::User;
-
-pub struct ValentineLetter {
-    pub sender: String,
-    pub recipient: String,
-    pub letter: String,
-    pub anon: bool,
-}
-
-enum LetterAddError {
-    UserHasTwoLetters,
-    DatabaseProblem,
-}
-
 use diesel::prelude::*;
+
+
+use serenity::{
+    builder::CreateApplicationCommand,
+    model::{
+        prelude::{
+            command::CommandOptionType,
+            interaction::application_command::{
+                ApplicationCommandInteraction, CommandDataOptionValue,
+            },
+        },
+        Permissions,
+    }, prelude::Context,
+};
+
+use crate::commands::log_letters::log_letter;
+
+pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
+    command
+        .name("sendletter")
+        .description("A ping command")
+        .create_option(|option| {
+            option
+                .name("recipient")
+                .description("The mod or heroine whom you want to send a valentine's letter to")
+                .kind(CommandOptionType::String)
+                .min_length(1)
+                .max_length(20)
+                .required(true)
+        })
+        .create_option(|option| {
+            option
+                .name("letter")
+                .description("The letter that you want to send to this person!")
+                .kind(CommandOptionType::String)
+                .min_length(100)
+                .required(true)
+        })
+        .create_option(|option| {
+            option
+                .name("anonymous")
+                .description("Do you want to send this message anonymously?")
+                .kind(CommandOptionType::Boolean)
+                .required(true)
+        })
+        .dm_permission(true)
+        .default_member_permissions(Permissions::SEND_MESSAGES)
+}
+
 fn add_letter_to_user(
     conn: &mut SqliteConnection,
     letter: &ValentineLetter,
@@ -50,11 +79,14 @@ fn add_letter_to_user(
     }
 }
 
-pub fn run(
-    options: &[CommandDataOption],
-    user: &User,
+pub async fn run(
+    command: &ApplicationCommandInteraction,
+    ctx: &Context,
     db_conn: &mut SqliteConnection,
-) -> Result<(ValentineLetter, String), String> {
+) -> Result<Option<String>, String> {
+    let user = &command.user;
+    let options = &command.data.options;
+
     let recipient = options
         .get(0)
         .expect("No recipient found")
@@ -103,47 +135,22 @@ pub fn run(
         anon: *is_anon,
     };
 
-    add_letter_to_user(db_conn, &letter)
-        .map(|_| {
-            (
-                letter,
-                "Thank you for your message, it has been recorded.".to_owned(),
-            )
-        })
-        .map_err(|e| match e {
-            LetterAddError::UserHasTwoLetters => "You have already sent two messages.".to_owned(),
-            LetterAddError::DatabaseProblem => "Something went very wrong.".to_owned(),
-        })
+    add_letter_to_user(db_conn, &letter).map_err(|e| match e {
+        LetterAddError::UserHasTwoLetters => "You have already sent two messages.".to_owned(),
+        LetterAddError::DatabaseProblem => "Something went very wrong.".to_owned(),
+    })?;
+    log_letter(ctx, &letter).await;
+    Ok(Some("Thank you for your message, it has been recorded.".to_owned()))
 }
 
-pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
-    command
-        .name("sendletter")
-        .description("A ping command")
-        .create_option(|option| {
-            option
-                .name("recipient")
-                .description("The mod or heroine whom you want to send a valentine's letter to")
-                .kind(CommandOptionType::String)
-                .min_length(1)
-                .max_length(20)
-                .required(true)
-        })
-        .create_option(|option| {
-            option
-                .name("letter")
-                .description("The letter that you want to send to this person!")
-                .kind(CommandOptionType::String)
-                .min_length(100)
-                .required(true)
-        })
-        .create_option(|option| {
-            option
-                .name("anonymous")
-                .description("Do you want to send this message anonymously?")
-                .kind(CommandOptionType::Boolean)
-                .required(true)
-        })
-        .dm_permission(true)
-        .default_member_permissions(Permissions::SEND_MESSAGES)
+pub struct ValentineLetter {
+    pub sender: String,
+    pub recipient: String,
+    pub letter: String,
+    pub anon: bool,
+}
+
+enum LetterAddError {
+    UserHasTwoLetters,
+    DatabaseProblem,
 }
