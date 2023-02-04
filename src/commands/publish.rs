@@ -15,6 +15,7 @@ use serenity::{
         Permissions,
     },
 };
+use tokio::time::{sleep, Duration};
 
 use crate::model::*;
 use crate::schema::letters::dsl::*;
@@ -49,15 +50,25 @@ pub async fn run(
             return Err("Bad channel type".to_owned())
         };
 
+        let ten_seconds = Duration::from_millis(4000);
+
         for letter in letters
             .load::<Letter>(db_conn)
             .map_err(|_| "database error".to_owned())?
         {
-            let ret = channel
-                .id
+            let channel_id = channel.id;
+            channel_id
+                .broadcast_typing(&ctx.http)
+                .await
+                .map_err(|e| format!("Error sending typing event.\n ```{e:?}```"))?;
+
+            sleep(ten_seconds).await;
+
+            let ret = channel_id
                 .send_message(ctx, |m| m.embed(|embed| letter.build_embed(embed)))
                 .await
                 .map_err(|e| format!("Error sending a message:\n```{e:?}```"))?;
+
             dbg!(ret);
         };
 
