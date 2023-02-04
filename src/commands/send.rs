@@ -140,7 +140,7 @@ pub async fn run(
         LetterAddError::DatabaseProblem => "Something went very wrong.".to_owned(),
     })?;
     log_letter(ctx, &letter).await;
-    Ok(Some("".to_owned()))
+    Ok(Some("Thank you for your message, it has been recorded.".to_owned()))
 }
 
 pub struct ValentineLetter {
