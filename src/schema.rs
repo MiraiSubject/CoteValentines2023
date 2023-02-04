@@ -2,7 +2,7 @@
 
 diesel::table! {
     letters (id) {
-        id -> Nullable<Integer>,
+        id -> Integer,
         recipient -> Text,
         sender -> Text,
         anon -> Bool,

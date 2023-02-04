@@ -13,8 +13,8 @@ pub struct Letter {
 #[derive(Insertable)]
 #[diesel(table_name = table)]
 pub struct NewLetter<'a> {
-    pub sender: &'a str,
     pub recipient: &'a str,
+    pub sender: &'a str,
     pub anon: bool,
     pub content: &'a str,
 

@@ -1,8 +1,10 @@
-mod commands;
-mod model;
+pub mod commands;
+pub mod model;
 pub mod schema;
 
 use commands::log_letters::log_letter;
+use commands::publish;
+
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::sqlite::{Sqlite, SqliteConnection};
 use diesel::Connection;
@@ -57,6 +59,9 @@ impl EventHandler for Handler {
                         Err(message) => message,
                     }
                 }
+                "publish" => publish::run(&command, &ctx, &mut self.db_pool.get().unwrap())
+                    .await
+                    .map_or_else(|e| e, |m| m),
                 _ => "not implemented :(".to_string(),
             };
 
@@ -64,7 +69,9 @@ impl EventHandler for Handler {
                 .create_interaction_response(&ctx.http, |response| {
                     response
                         .kind(InteractionResponseType::ChannelMessageWithSource)
-                        .interaction_response_data(|message| message.content(content).ephemeral(true))
+                        .interaction_response_data(|message| {
+                            message.content(content).ephemeral(true)
+                        })
                 })
                 .await
             {
@@ -90,8 +97,10 @@ impl EventHandler for Handler {
         //     })
         //     .await;
 
-        let commands = Command::create_global_application_command(&ctx.http, |command| {
-            commands::send::register(command)
+        let commands = Command::set_global_application_commands(&ctx.http, |commands| {
+            commands
+            .create_application_command(|command| commands::send::register(command))
+            .create_application_command(|command| commands::publish::register(command))
         })
         .await;
 
