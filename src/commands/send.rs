@@ -8,6 +8,7 @@ use serenity::{
             interaction::application_command::{
                 ApplicationCommandInteraction, CommandDataOptionValue,
             },
+            Message,
         },
         Permissions,
     },
@@ -70,6 +71,7 @@ fn user_can_send_letter(
 fn add_letter_to_user(
     conn: &mut SqliteConnection,
     letter: &ValentineLetter,
+    log_message: &Message,
 ) -> Result<(), DatabaseProblem> {
     use crate::model::*;
     use crate::schema::letters::dsl::*;
@@ -79,6 +81,7 @@ fn add_letter_to_user(
         recipient: &letter.recipient,
         anon: letter.anon,
         content: &letter.letter,
+        message_id: &log_message.id.to_string(),
     };
 
     diesel::insert_into(letters)
@@ -94,65 +97,20 @@ pub async fn run(
     ctx: &Context,
     db_conn: &mut SqliteConnection,
 ) -> Result<Option<String>, String> {
-    let user = &command.user;
-    let options = &command.data.options;
-
-    let recipient = options
-        .get(0)
-        .expect("No recipient found")
-        .resolved
-        .as_ref()
-        .expect("Expected recipient object");
-
-    let letter = options
-        .get(1)
-        .expect("No message contents count")
-        .resolved
-        .as_ref()
-        .expect("Letter object expected");
-
-    let anon_option = options
-        .get(2)
-        .expect("We don't know if the user wants to send anonymously")
-        .resolved
-        .as_ref()
-        .expect("Expected boolean object");
-
-    fn as_string(optionval: &CommandDataOptionValue) -> Result<&String, ()> {
-        if let CommandDataOptionValue::String(stringval) = optionval {
-            Ok(stringval)
-        } else {
-            Err(())
-        }
-    }
-
-    fn as_boolean(optionval: &CommandDataOptionValue) -> Result<&bool, ()> {
-        if let CommandDataOptionValue::Boolean(val) = optionval {
-            Ok(val)
-        } else {
-            Err(())
-        }
-    }
-
-    let recipient = as_string(recipient).unwrap();
-    let letter = as_string(letter).unwrap();
-    let is_anon = as_boolean(anon_option).unwrap();
-
-    let letter = ValentineLetter {
-        sender: user.name.clone(),
-        recipient: recipient.to_string(),
-        letter: letter.to_string(),
-        anon: *is_anon,
-    };
+    let letter: ValentineLetter = command
+        .try_into()
+        .map_err(|e| format!("Error while parsing arguments: {e:?}"))?;
 
     let can_send = user_can_send_letter(db_conn, &letter)
         .map_err(|_| "Something went very wrong.".to_owned())?;
 
     Ok(Some(if can_send {
-        add_letter_to_user(db_conn, &letter)
-            .map_err(|_| "Something went very wrong.".to_owned())?;
+        let log_message = log_letter(ctx, &letter)
+            .await
+            .map_err(|_| "Something went wrong: couldn't log message")?;
 
-        log_letter(ctx, &letter).await;
+        add_letter_to_user(db_conn, &letter, &log_message)
+            .map_err(|_| "Something went very wrong.".to_owned())?;
 
         "Thank you for your message, it has been recorded.".to_owned()
     } else {
@@ -165,6 +123,73 @@ pub struct ValentineLetter {
     pub recipient: String,
     pub letter: String,
     pub anon: bool,
+}
+
+#[derive(Debug)]
+pub struct ParseOptionsError(&'static str);
+
+impl TryFrom<&ApplicationCommandInteraction> for ValentineLetter {
+    type Error = ParseOptionsError;
+
+    fn try_from(value: &ApplicationCommandInteraction) -> Result<Self, Self::Error> {
+        let user = &value.user;
+        let options = &value.data.options;
+
+        fn as_string(optionval: &CommandDataOptionValue) -> Result<&String, ()> {
+            if let CommandDataOptionValue::String(stringval) = optionval {
+                Ok(stringval)
+            } else {
+                Err(())
+            }
+        }
+
+        fn as_boolean(optionval: &CommandDataOptionValue) -> Result<&bool, ()> {
+            if let CommandDataOptionValue::Boolean(val) = optionval {
+                Ok(val)
+            } else {
+                Err(())
+            }
+        }
+
+        let recipient = as_string(
+            options
+                .get(0)
+                .ok_or(ParseOptionsError("No recipient found"))?
+                .resolved
+                .as_ref()
+                .ok_or(ParseOptionsError("Expected recipient object"))?,
+        )
+        .map_err(|_| ParseOptionsError("Recipient is not string"))?;
+
+        let letter = as_string(
+            options
+                .get(1)
+                .ok_or(ParseOptionsError("No message contents count"))?
+                .resolved
+                .as_ref()
+                .ok_or(ParseOptionsError("Letter object expected"))?,
+        )
+        .map_err(|_| ParseOptionsError("Letter is not string"))?;
+
+        let is_anon = as_boolean(
+            options
+                .get(2)
+                .ok_or(ParseOptionsError(
+                    "We don't know if the user wants to send anonymously",
+                ))?
+                .resolved
+                .as_ref()
+                .ok_or(ParseOptionsError("Expected boolean object"))?,
+        )
+        .map_err(|_| ParseOptionsError("Anonymous is not boolean"))?;
+
+        Ok(ValentineLetter {
+            sender: user.name.clone(),
+            recipient: recipient.to_string(),
+            letter: letter.to_string(),
+            anon: *is_anon,
+        })
+    }
 }
 
 struct DatabaseProblem;
