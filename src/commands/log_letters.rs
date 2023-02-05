@@ -1,5 +1,5 @@
 use serenity::{
-    model::prelude::{ChannelId, Message},
+    model::prelude::{component::ButtonStyle, ChannelId, Message},
     prelude::Context,
 };
 
@@ -21,6 +21,17 @@ pub async fn log_letter(ctx: &Context, letter: &ValentineLetter) -> serenity::Re
 
             e.description(&letter.letter)
                 .footer(|f| f.text("2023 Classroom of the Elite Valentine's Event"))
+        })
+        .components(|components| {
+            components.create_action_row(|row| {
+                row.create_button(|button| {
+                    button
+                        .custom_id("delete_letter")
+                        // .emoji("🗑️")
+                        .style(ButtonStyle::Danger)
+                        .label("Delete")
+                })
+            })
         })
     })
     .await
