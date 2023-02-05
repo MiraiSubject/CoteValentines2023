@@ -5,8 +5,9 @@ use serenity::{
     model::{
         prelude::{
             command::CommandOptionType,
-            interaction::application_command::{
-                ApplicationCommandInteraction, CommandDataOptionValue,
+            interaction::{
+                application_command::{ApplicationCommandInteraction, CommandDataOptionValue},
+                autocomplete::AutocompleteInteraction,
             },
             Message,
         },
@@ -29,6 +30,7 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
                 .min_length(1)
                 .max_length(20)
                 .required(true)
+                .set_autocomplete(true)
         })
         .create_option(|option| {
             option
@@ -119,12 +121,70 @@ pub async fn run(
     }))
 }
 
+pub async fn complete(
+    interaction: &AutocompleteInteraction,
+    ctx: &Context,
+    db_conn: &mut SqliteConnection,
+) -> Result<(), &'static str> {
+    use crate::schema::recipients::dsl::*;
+
+    println!("Starting to autocomplete. poggers");
+
+    let up_to_now = as_string(
+        interaction
+            .data
+            .options
+            .get(0)
+            .ok_or("No recipient found")?
+            .resolved
+            .as_ref()
+            .ok_or("Expected recipient object")?,
+    )
+    .map_err(|_| "Recipient is not string")?;
+
+    println!("{}", up_to_now);
+
+    interaction
+        .create_autocomplete_response(ctx, |response| {
+            let names: Vec<String> = recipients
+                .filter(fullname.like(format!("{}%", *up_to_now)))
+                .select(fullname)
+                .load(db_conn)
+                .unwrap();
+
+            for name in names {
+                response.add_string_choice(&name, &name);
+            }
+
+            response
+        })
+        .await
+        .unwrap();
+    Ok(())
+}
+
 pub struct ValentineLetter {
     pub sender: String,
     pub sender_id: String,
     pub recipient: String,
     pub letter: String,
     pub anon: bool,
+}
+
+fn as_string(optionval: &CommandDataOptionValue) -> Result<&String, ()> {
+    if let CommandDataOptionValue::String(stringval) = optionval {
+        Ok(stringval)
+    } else {
+        Err(())
+    }
+}
+
+fn as_boolean(optionval: &CommandDataOptionValue) -> Result<&bool, ()> {
+    if let CommandDataOptionValue::Boolean(val) = optionval {
+        Ok(val)
+    } else {
+        Err(())
+    }
 }
 
 #[derive(Debug)]
@@ -136,22 +196,6 @@ impl TryFrom<&ApplicationCommandInteraction> for ValentineLetter {
     fn try_from(value: &ApplicationCommandInteraction) -> Result<Self, Self::Error> {
         let user = &value.user;
         let options = &value.data.options;
-
-        fn as_string(optionval: &CommandDataOptionValue) -> Result<&String, ()> {
-            if let CommandDataOptionValue::String(stringval) = optionval {
-                Ok(stringval)
-            } else {
-                Err(())
-            }
-        }
-
-        fn as_boolean(optionval: &CommandDataOptionValue) -> Result<&bool, ()> {
-            if let CommandDataOptionValue::Boolean(val) = optionval {
-                Ok(val)
-            } else {
-                Err(())
-            }
-        }
 
         let recipient = as_string(
             options

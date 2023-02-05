@@ -91,6 +91,11 @@ impl EventHandler for Handler {
                     _ => (),
                 }
             }
+            Interaction::Autocomplete(interaction) => {
+                commands::send::complete(&interaction, &ctx, &mut self.db_pool.get().unwrap())
+                    .await
+                    .unwrap();
+            }
             _ => (),
         }
     }
