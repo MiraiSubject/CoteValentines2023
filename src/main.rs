@@ -36,34 +36,44 @@ pub struct Handler {
 #[async_trait]
 impl EventHandler for Handler {
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
-        if let Interaction::ApplicationCommand(command) = interaction {
-            // println!("Received command interaction: {:#?}", command);
+        match interaction {
+            Interaction::ApplicationCommand(command) => {
+                // println!("Received command interaction: {:#?}", command);
 
-            use commands::*;
+                use commands::*;
 
-            let result = match command.data.name.as_str() {
-                // "ping" => commands::ping::run(&command.data.options),
-                "sendletter" => send::run(&command, &ctx, &mut self.db_pool.get().unwrap()).await,
-                "publish" => publish::run(&command, &ctx, &mut self.db_pool.get().unwrap()).await,
-                _ => Err("command not found".to_string()),
-            };
+                let result = match command.data.name.as_str() {
+                    // "ping" => commands::ping::run(&command.data.options),
+                    "sendletter" => send::run(&command, &ctx, &mut self.db_pool.get().unwrap()).await,
+                    "publish" => publish::run(&command, &ctx, &mut self.db_pool.get().unwrap()).await,
+                    _ => Err("command not found".to_string()),
+                };
 
-            match result {
-                Ok(None) => (),
-                Ok(Some(content)) | Err(content) => {
-                    if let Err(why) = command
-                        .create_interaction_response(&ctx.http, |response| {
-                            response
-                                .kind(InteractionResponseType::ChannelMessageWithSource)
-                                .interaction_response_data(|message| {
-                                    message.content(content).ephemeral(true)
-                                })
-                        }).await
-                    {
-                        println!("Cannot respond to slash command: {}", why);
+                match result {
+                    Ok(None) => (),
+                    Ok(Some(content)) | Err(content) => {
+                        if let Err(why) = command
+                            .create_interaction_response(&ctx.http, |response| {
+                                response
+                                    .kind(InteractionResponseType::ChannelMessageWithSource)
+                                    .interaction_response_data(|message| {
+                                        message.content(content).ephemeral(true)
+                                    })
+                            }).await
+                        {
+                            println!("Cannot respond to slash command: {}", why);
+                        }
                     }
-                }
-            };
+                };
+            }
+            Interaction::MessageComponent(interaction) => {
+                match interaction.data.custom_id.as_str() {
+                    "delete_letter" => commands::delete::run(interaction, &ctx, &mut self.db_pool.get().unwrap()).await,
+                    custom_id => println!("Message component interaction not found: {custom_id}"),
+                };
+                // println!("a message component interaction arrived: {interaction:?}");
+            }
+            _ => (),
         }
     }
 

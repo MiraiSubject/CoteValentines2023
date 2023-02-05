@@ -10,6 +10,7 @@ tokio = { version = "1.21.2", features = ["macros", "rt-multi-thread"] }
 dotenv = "0.15.0"
 diesel_migrations = {version = "2.0.0", features = ["sqlite"]}
 rand = "0.8.5"
+chrono = "0.4.23"
 
 [dependencies.serenity]
 default-features = false
