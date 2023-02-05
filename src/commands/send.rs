@@ -51,26 +51,26 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
 fn user_can_send_letter(
     conn: &mut SqliteConnection,
     letter: &ValentineLetter,
-) -> Result<(), CanSend> {
+) -> Result<bool, DatabaseProblem> {
     use crate::schema::letters::dsl::*;
 
     let letter_count: i64 = letters
         .filter(sender.eq(&letter.sender))
         .count()
         .get_result(conn)
-        .map_err(|_| CanSend::DatabaseProblem)?;
+        .map_err(|_| DatabaseProblem)?;
 
     if letter_count >= 2 {
-        Err(CanSend::UserHasTwoLetters)
+        Ok(false)
     } else {
-        Ok(())
+        Ok(true)
     }
 }
 
 fn add_letter_to_user(
     conn: &mut SqliteConnection,
     letter: &ValentineLetter,
-) -> Result<(), DatabaseError> {
+) -> Result<(), DatabaseProblem> {
     use crate::model::*;
     use crate::schema::letters::dsl::*;
 
@@ -84,7 +84,7 @@ fn add_letter_to_user(
     diesel::insert_into(letters)
         .values(&letter)
         .execute(conn)
-        .map_err(|_| DatabaseError::DatabaseProblem)?;
+        .map_err(|_| DatabaseProblem)?;
 
     Ok(())
 }
@@ -145,24 +145,19 @@ pub async fn run(
         anon: *is_anon,
     };
 
-    let can_send = user_can_send_letter(db_conn, &letter);
+    let can_send = user_can_send_letter(db_conn, &letter)
+        .map_err(|_| "Something went very wrong.".to_owned())?;
 
-    let response = match can_send {
-        Ok(_) => "Thank you for your message, it has been recorded.".to_owned(),
-        Err(e) => match e {
-            DatabaseError::UserHasTwoLetters => "You have already sent two messages.".to_owned(),
-            DatabaseError::DatabaseProblem => "Something went very wrong.".to_owned(),
-        },
-    };
+    Ok(Some(if can_send {
+        add_letter_to_user(db_conn, &letter)
+            .map_err(|_| "Something went very wrong.".to_owned())?;
 
-    add_letter_to_user(db_conn, &letter).map_err(|e| match e {
-        DatabaseError::UserHasTwoLetters => "You have already sent two messages.".to_owned(),
-        DatabaseError::DatabaseProblem => "Something went very wrong.".to_owned(),
-    })?;
-    log_letter(ctx, &letter).await;
-    Ok(Some(
-        "Thank you for your message, it has been recorded.".to_owned(),
-    ))
+        log_letter(ctx, &letter).await;
+
+        "Thank you for your message, it has been recorded.".to_owned()
+    } else {
+        "You have already sent two messages.".to_owned()
+    }))
 }
 
 pub struct ValentineLetter {
@@ -172,12 +167,4 @@ pub struct ValentineLetter {
     pub anon: bool,
 }
 
-enum CanSend {
-    UserHasTwoLetters,
-    DatabaseProblem
-}
-
-enum DatabaseError {
-    UserHasTwoLetters,
-    DatabaseProblem,
-}
+struct DatabaseProblem;
