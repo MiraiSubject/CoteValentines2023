@@ -36,6 +36,7 @@ pub struct Handler {
 #[async_trait]
 impl EventHandler for Handler {
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
+        #![allow(clippy::single_match)]
         match interaction {
             Interaction::ApplicationCommand(command) => {
                 // println!("Received command interaction: {:#?}", command);
