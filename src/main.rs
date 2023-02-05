@@ -73,13 +73,23 @@ impl EventHandler for Handler {
             }
             Interaction::MessageComponent(interaction) => {
                 match interaction.data.custom_id.as_str() {
-                    "delete_letter" => {
-                        commands::delete::run(interaction, &ctx, &mut self.db_pool.get().unwrap())
-                            .await
-                    }
+                    "delete_letter" => commands::delete::handle_button(&interaction, &ctx).await,
                     custom_id => println!("Message component interaction not found: {custom_id}"),
                 };
                 // println!("a message component interaction arrived: {interaction:?}");
+            }
+            Interaction::ModalSubmit(mut interaction) => {
+                match interaction.data.custom_id.as_str() {
+                    "delete_modal" => {
+                        commands::delete::handle_modal(
+                            &mut interaction,
+                            &ctx,
+                            &mut self.db_pool.get().unwrap(),
+                        )
+                        .await
+                    }
+                    _ => (),
+                }
             }
             _ => (),
         }
