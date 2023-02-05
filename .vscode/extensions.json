@@ -1,0 +1,7 @@
+{
+    "recommendations": [
+        "qwtel.sqlite-viewer",
+        "vadimcn.vscode-lldb",
+        "rust-lang.rust-analyzer"
+    ]
+}
