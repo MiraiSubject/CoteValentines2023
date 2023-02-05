@@ -11,6 +11,25 @@ pub async fn run(
     ctx: &Context,
     db_conn: &mut SqliteConnection,
 ) {
+    let Some(member) = &interaction.member else {
+        return;
+    };
+
+    if !member
+        .permissions
+        .expect("member should have permissions")
+        .manage_messages()
+    {
+        interaction.create_interaction_response(ctx, |response| 
+            response.interaction_response_data(|data| 
+                data
+                    .ephemeral(true)
+                    .content("You are not allowed to manage messages (Manage Messages not allowed in channel)")
+                )
+            ).await.unwrap();
+            return;
+    };
+
     let deleted = delete_letter(interaction.message.id, db_conn).expect("Can delete letter");
     interaction
         .message
