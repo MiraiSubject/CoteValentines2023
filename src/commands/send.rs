@@ -6,7 +6,7 @@ use serenity::{
         prelude::{
             command::CommandOptionType,
             interaction::{
-                application_command::{ApplicationCommandInteraction, CommandDataOptionValue},
+                application_command::ApplicationCommandInteraction,
                 autocomplete::AutocompleteInteraction,
             },
             Message,
@@ -17,6 +17,8 @@ use serenity::{
 };
 
 use crate::commands::log_letters::log_letter;
+
+use super::{as_boolean, as_string};
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
@@ -169,22 +171,6 @@ pub struct ValentineLetter {
     pub recipient: String,
     pub letter: String,
     pub anon: bool,
-}
-
-fn as_string(optionval: &CommandDataOptionValue) -> Result<&String, ()> {
-    if let CommandDataOptionValue::String(stringval) = optionval {
-        Ok(stringval)
-    } else {
-        Err(())
-    }
-}
-
-fn as_boolean(optionval: &CommandDataOptionValue) -> Result<&bool, ()> {
-    if let CommandDataOptionValue::Boolean(val) = optionval {
-        Ok(val)
-    } else {
-        Err(())
-    }
 }
 
 #[derive(Debug)]
