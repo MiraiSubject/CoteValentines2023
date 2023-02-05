@@ -44,8 +44,12 @@ impl EventHandler for Handler {
 
                 let result = match command.data.name.as_str() {
                     // "ping" => commands::ping::run(&command.data.options),
-                    "sendletter" => send::run(&command, &ctx, &mut self.db_pool.get().unwrap()).await,
-                    "publish" => publish::run(&command, &ctx, &mut self.db_pool.get().unwrap()).await,
+                    "sendletter" => {
+                        send::run(&command, &ctx, &mut self.db_pool.get().unwrap()).await
+                    }
+                    "publish" => {
+                        publish::run(&command, &ctx, &mut self.db_pool.get().unwrap()).await
+                    }
                     _ => Err("command not found".to_string()),
                 };
 
@@ -59,7 +63,8 @@ impl EventHandler for Handler {
                                     .interaction_response_data(|message| {
                                         message.content(content).ephemeral(true)
                                     })
-                            }).await
+                            })
+                            .await
                         {
                             println!("Cannot respond to slash command: {}", why);
                         }
@@ -68,7 +73,10 @@ impl EventHandler for Handler {
             }
             Interaction::MessageComponent(interaction) => {
                 match interaction.data.custom_id.as_str() {
-                    "delete_letter" => commands::delete::run(interaction, &ctx, &mut self.db_pool.get().unwrap()).await,
+                    "delete_letter" => {
+                        commands::delete::run(interaction, &ctx, &mut self.db_pool.get().unwrap())
+                            .await
+                    }
                     custom_id => println!("Message component interaction not found: {custom_id}"),
                 };
                 // println!("a message component interaction arrived: {interaction:?}");

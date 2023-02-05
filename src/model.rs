@@ -1,5 +1,5 @@
-use diesel::prelude::*;
 use crate::schema::letters as table;
+use diesel::prelude::*;
 
 #[derive(Queryable)]
 pub struct Letter {

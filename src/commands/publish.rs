@@ -64,7 +64,6 @@ pub async fn run(
             .load::<Letter>(db_conn)
             .map_err(|_| "database error".to_owned())?;
 
-        
         const MAX_RUNTIME: Duration = Duration::from_secs(60 * 10);
         const MAX_DELAY_PER_LETTER: Duration = Duration::from_secs(5);
 
