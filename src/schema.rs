@@ -8,5 +8,6 @@ diesel::table! {
         anon -> Bool,
         content -> Text,
         message_id -> Text,
+        sender_id -> Text,
     }
 }
