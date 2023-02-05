@@ -1,5 +1,5 @@
-use diesel::prelude::*;
 use crate::schema::letters as table;
+use diesel::prelude::*;
 
 #[derive(Queryable)]
 pub struct Letter {
@@ -8,6 +8,7 @@ pub struct Letter {
     pub sender: String,
     pub anon: bool,
     pub content: String,
+    pub message_id: String,
 }
 
 #[derive(Insertable)]
@@ -17,5 +18,5 @@ pub struct NewLetter<'a> {
     pub sender: &'a str,
     pub anon: bool,
     pub content: &'a str,
-
+    pub message_id: &'a str,
 }
