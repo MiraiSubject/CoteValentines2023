@@ -82,6 +82,7 @@ fn add_letter_to_user(
         anon: letter.anon,
         content: &letter.letter,
         message_id: &log_message.id.to_string(),
+        sender_id: &letter.sender_id,
     };
 
     diesel::insert_into(letters)
@@ -120,6 +121,7 @@ pub async fn run(
 
 pub struct ValentineLetter {
     pub sender: String,
+    pub sender_id: String,
     pub recipient: String,
     pub letter: String,
     pub anon: bool,
@@ -188,6 +190,7 @@ impl TryFrom<&ApplicationCommandInteraction> for ValentineLetter {
             recipient: recipient.to_string(),
             letter: letter.to_string(),
             anon: *is_anon,
+            sender_id: value.user.id.to_string(),
         })
     }
 }

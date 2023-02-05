@@ -9,6 +9,7 @@ pub struct Letter {
     pub anon: bool,
     pub content: String,
     pub message_id: String,
+    pub sender_id: String,
 }
 
 #[derive(Insertable)]
@@ -19,4 +20,5 @@ pub struct NewLetter<'a> {
     pub anon: bool,
     pub content: &'a str,
     pub message_id: &'a str,
+    pub sender_id: &'a str,
 }
