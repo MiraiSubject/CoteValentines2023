@@ -125,11 +125,12 @@ impl EventHandler for Handler {
                 .create_application_command(|command| commands::publish::register(command))
                 .create_application_command(|command| commands::add_recipient::register(command))
         })
-        .await;
+        .await
+        .expect("able to set application commands");
 
         println!(
-            "I now have the following guild slash commands: {:#?}",
-            commands
+            "I now have the following guild slash commands: {}",
+            commands.iter().map(|command| format!("\n- \"{}\" ({} options): {}", command.name, command.options.len(), command.description)).reduce(|acc, val| acc + &val).unwrap()
         );
     }
 }
@@ -152,18 +153,20 @@ async fn main() {
         run_migrations(conn).unwrap();
 
         if let Ok(var) = env::var("RECIPIENTS") {
-            _ = diesel::delete(recipients).execute(conn);
+            _ = diesel::delete(recipients).execute(conn).unwrap();
             diesel::insert_into(recipients)
                 .values(
-                    var.split(',')
+                    var.split(':')
                         .map(|name| Recipient {
-                            fullname: name.to_owned(),
+                            fullname: name.replace('_', " ").to_owned(),
                             is_real: false,
                         })
                         .collect::<Vec<_>>(),
                 )
                 .execute(conn)
                 .unwrap();
+        } else {
+            println!("No default recipients specified, not resetting database.")
         }
     }
 
