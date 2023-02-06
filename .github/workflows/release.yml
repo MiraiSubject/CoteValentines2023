@@ -1,46 +1,44 @@
-on: [push]
-
-name: CI
+on:
+  push:
+    branches:
+      - release
 
 jobs:
-  build_matrix:
-    strategy:
-      matrix:
-        # Maybe we want to have executables for all platforms just to test this?
-        os: [ubuntu-latest]
-        rust: [stable]
-    runs-on: ${{ matrix.os }}
+  build:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up cache
-        uses: actions/cache@v2
+
+      - uses: actions/download-artifact@v3
+        name: Download release artifact
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-      - uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release --all-features
+          name: cotevalentines
+          path: ./docker/cotevalentines
+
       - shell: bash
+        name: Copy Dockerfile
         run: |
-          mkdir artifacts
-          mv ./target/release/cotevalentines ./artifacts
-      - name: Run UPX
-        uses: crazy-max/ghaction-upx@v2
+          cp ./Dockerfile ./docker
+
+      - name: Setup Docker buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log into registry ${{ env.REGISTRY }}
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v2
         with:
-          version: latest
-          files: |
-            ./artifacts/cotevalentines
-          # args: -fq
-      - uses: actions/upload-artifact@v3
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password:
+            ${{ secrets.GITHUB_TOKEN }}
+
+      # Build and push Docker image with Buildx (don't push on PR)
+      # https://github.com/docker/build-push-action
+      - name: Build and push Docker image
+        id: build-and-push
+        uses: docker/build-push-action@v4
         with:
-          name: Cotevalentine-Binary
-          path: ./artifacts/cotevalentines*
+          context: ./docker
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

@@ -1,0 +1,46 @@
+on: [push]
+
+name: CI
+
+jobs:
+  build_matrix:
+    strategy:
+      matrix:
+        # Maybe we want to have executables for all platforms just to test this?
+        os: [ubuntu-latest]
+        rust: [stable]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --all-features
+      - shell: bash
+        run: |
+          mkdir artifacts
+          mv ./target/release/cotevalentines ./artifacts
+      - name: Run UPX
+        uses: crazy-max/ghaction-upx@v2
+        with:
+          version: latest
+          files: |
+            ./artifacts/cotevalentines
+          # args: -fq
+      - uses: actions/upload-artifact@v3
+        with:
+          name: Cotevalentine-Binary
+          path: ./artifacts/cotevalentines*
