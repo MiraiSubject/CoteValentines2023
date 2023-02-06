@@ -11,3 +11,15 @@ diesel::table! {
         sender_id -> Text,
     }
 }
+
+diesel::table! {
+    recipients (fullname) {
+        fullname -> Text,
+        is_real -> Bool,
+    }
+}
+
+diesel::allow_tables_to_appear_in_same_query!(
+    letters,
+    recipients,
+);

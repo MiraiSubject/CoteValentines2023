@@ -1,4 +1,4 @@
-use crate::schema::letters as table;
+use crate::schema::*;
 use diesel::prelude::*;
 
 #[derive(Queryable)]
@@ -13,7 +13,7 @@ pub struct Letter {
 }
 
 #[derive(Insertable)]
-#[diesel(table_name = table)]
+#[diesel(table_name = letters)]
 pub struct NewLetter<'a> {
     pub recipient: &'a str,
     pub sender: &'a str,
@@ -21,4 +21,10 @@ pub struct NewLetter<'a> {
     pub content: &'a str,
     pub message_id: &'a str,
     pub sender_id: &'a str,
+}
+
+#[derive(Queryable, Insertable)]
+pub struct Recipient {
+    pub fullname: String,
+    pub is_real: bool,
 }

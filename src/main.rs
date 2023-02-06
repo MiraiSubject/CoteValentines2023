@@ -4,7 +4,6 @@ pub mod schema;
 
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::sqlite::{Sqlite, SqliteConnection};
-use diesel::Connection;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
@@ -51,6 +50,9 @@ impl EventHandler for Handler {
                     "publish" => {
                         publish::run(&command, &ctx, &mut self.db_pool.get().unwrap()).await
                     }
+                    "add_recipient" => {
+                        add_recipient::run(&command, &ctx, &mut self.db_pool.get().unwrap()).await
+                    }
                     _ => Err("command not found".to_string()),
                 };
 
@@ -92,6 +94,11 @@ impl EventHandler for Handler {
                     _ => (),
                 }
             }
+            Interaction::Autocomplete(interaction) => {
+                commands::send::complete(&interaction, &ctx, &mut self.db_pool.get().unwrap())
+                    .await
+                    .unwrap();
+            }
             _ => (),
         }
     }
@@ -117,12 +124,14 @@ impl EventHandler for Handler {
             commands
                 .create_application_command(|command| commands::send::register(command))
                 .create_application_command(|command| commands::publish::register(command))
+                .create_application_command(|command| commands::add_recipient::register(command))
         })
-        .await;
+        .await
+        .expect("able to set application commands");
 
         println!(
-            "I now have the following guild slash commands: {:#?}",
-            commands
+            "I now have the following guild slash commands: {}",
+            commands.iter().map(|command| format!("\n- \"{}\" ({} options): {}", command.name, command.options.len(), command.description)).reduce(|acc, val| acc + &val).unwrap()
         );
     }
 }
@@ -135,7 +144,32 @@ async fn main() {
 
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
-    run_migrations(&mut SqliteConnection::establish(&database_url).unwrap()).unwrap();
+    {
+        use diesel::prelude::*;
+        use model::Recipient;
+        use schema::recipients::dsl::recipients;
+
+        let conn = &mut SqliteConnection::establish(&database_url).unwrap();
+
+        run_migrations(conn).unwrap();
+
+        if let Ok(var) = env::var("RECIPIENTS") {
+            _ = diesel::delete(recipients).execute(conn).unwrap();
+            diesel::insert_into(recipients)
+                .values(
+                    var.split(':')
+                        .map(|name| Recipient {
+                            fullname: name.replace('_', " ").to_owned(),
+                            is_real: false,
+                        })
+                        .collect::<Vec<_>>(),
+                )
+                .execute(conn)
+                .unwrap();
+        } else {
+            println!("No default recipients specified, not resetting database.")
+        }
+    }
 
     // Build our client.
     let mut client = Client::builder(token, GatewayIntents::empty())
