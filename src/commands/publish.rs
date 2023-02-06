@@ -121,5 +121,5 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
                 .required(true)
         })
         .dm_permission(false)
-        .default_member_permissions(Permissions::READ_MESSAGE_HISTORY)
+        .default_member_permissions(Permissions::MANAGE_MESSAGES)
 }
