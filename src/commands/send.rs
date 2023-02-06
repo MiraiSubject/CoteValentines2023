@@ -130,8 +130,6 @@ pub async fn complete(
 ) -> Result<(), &'static str> {
     use crate::schema::recipients::dsl::*;
 
-    println!("Starting to autocomplete. poggers");
-
     let up_to_now = as_string(
         interaction
             .data
@@ -143,8 +141,6 @@ pub async fn complete(
             .ok_or("Expected recipient object")?,
     )
     .map_err(|_| "Recipient is not string")?;
-
-    println!("{}", up_to_now);
 
     interaction
         .create_autocomplete_response(ctx, |response| {
