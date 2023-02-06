@@ -8,11 +8,21 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: Wait for tests to succeed
+        uses: lewagon/wait-on-check-action@v1.2.0
+        with:
+          ref: ${{ github.ref }}
+          check-name: 'Upload Binary'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10
+          allowed-conclusions: 'success'
+
       - uses: actions/checkout@v2
 
-      - uses: actions/download-artifact@v3
+      - uses: dawidd6/action-download-artifact@v2
         name: Download release artifact
         with:
+          branch: release
           name: cotevalentines
           path: ./docker/cotevalentines
 

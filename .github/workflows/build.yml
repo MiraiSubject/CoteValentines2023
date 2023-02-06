@@ -41,6 +41,7 @@ jobs:
             ./artifacts/cotevalentines
           # args: -fq
       - uses: actions/upload-artifact@v3
+        name: Upload Binary
         with:
           name: Cotevalentine-Binary
           path: ./artifacts/cotevalentines*
