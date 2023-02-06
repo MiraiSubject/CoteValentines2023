@@ -16,4 +16,6 @@ COPY ./Cotevalentines2023 ${APP}
 
 WORKDIR ${APP}
 
-CMD [ "./cotevalentines" ]
+ENV DATABASE_URL=./db/sqlite.db
+VOLUME [ "./db" ]
+CMD [ "DATABASE_URL=${DATABASE_URL} ./cotevalentines" ]
