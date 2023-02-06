@@ -49,6 +49,9 @@ impl EventHandler for Handler {
                     "publish" => {
                         publish::run(&command, &ctx, &mut self.db_pool.get().unwrap()).await
                     }
+                    "add_recipient" => {
+                        add_recipient::run(&command, &ctx, &mut self.db_pool.get().unwrap()).await
+                    }
                     _ => Err("command not found".to_string()),
                 };
 
@@ -120,6 +123,7 @@ impl EventHandler for Handler {
             commands
                 .create_application_command(|command| commands::send::register(command))
                 .create_application_command(|command| commands::publish::register(command))
+                .create_application_command(|command| commands::add_recipient::register(command))
         })
         .await;
 
