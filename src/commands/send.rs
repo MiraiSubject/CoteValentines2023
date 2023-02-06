@@ -149,7 +149,7 @@ pub async fn complete(
     interaction
         .create_autocomplete_response(ctx, |response| {
             let names: Vec<String> = recipients
-                .filter(fullname.like(format!("{}%", *up_to_now)))
+                .filter(fullname.like(format!("%{}%", up_to_now)))
                 .select(fullname)
                 .load(db_conn)
                 .unwrap();
