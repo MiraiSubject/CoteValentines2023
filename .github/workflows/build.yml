@@ -53,6 +53,9 @@ jobs:
   build_docker_image:
     runs-on: ubuntu-latest
     needs: build_matrix
+    permissions:
+      contents: read
+      packages: write
     if: github.ref == 'refs/heads/release' || github.ref == 'refs/heads/docker'
     steps:
       - uses: actions/checkout@v2
@@ -78,6 +81,14 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      
+      # Extract metadata (tags, labels) for Docker
+      # https://github.com/docker/metadata-action
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v4.3.0
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
