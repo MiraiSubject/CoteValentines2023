@@ -43,7 +43,7 @@ jobs:
           mv ./target/release/cotevalentines ./artifacts
       - name: Run UPX
         uses: crazy-max/ghaction-upx@v2
-        if: matrix.os != 'windows-latest'
+        if: matrix.os != 'windows-latest' || matrix.os != 'macos-latest'
         with:
           version: latest
           files: |
