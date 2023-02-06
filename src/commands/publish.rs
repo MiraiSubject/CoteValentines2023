@@ -31,6 +31,12 @@ impl Letter {
         })
         .description(self.content.clone())
         .footer(|f| f.text("2023 Classroom of the Elite Valentine's Event"))
+        .colour({
+            use random_color::{Color, RandomColor};
+
+            let colour = RandomColor::new().hue(Color::Pink).to_rgb_array();
+            (colour[0], colour[1], colour[2])
+        })
     }
 }
 
