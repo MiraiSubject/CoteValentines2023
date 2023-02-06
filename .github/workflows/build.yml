@@ -39,14 +39,17 @@ jobs:
         run: |
           mkdir artifacts
           mv ./target/release/cotevalentines ./artifacts
+
       - name: Run UPX
         uses: crazy-max/ghaction-upx@v2
-        if: runner.os != 'windows-latest' || runner.os != 'macos-latest'
+        continue-on-error: true
+        if: matrix.os != 'windows-latest' || matrix.os != 'macOS-latest'
         with:
           version: latest
           files: |
             ./artifacts/cotevalentines
           # args: -fq
+  
       - uses: actions/upload-artifact@v3
         name: Upload Binary
         with:
