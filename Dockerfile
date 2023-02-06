@@ -12,7 +12,7 @@ RUN groupadd $APP_USER \
     && useradd -g $APP_USER $APP_USER \
     && mkdir -p ${APP}
 
-COPY ./cotevalentines ${APP}
+COPY ./Cotevalentines2023 ${APP}
 
 WORKDIR ${APP}
 

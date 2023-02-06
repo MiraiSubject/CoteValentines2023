@@ -43,7 +43,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         name: Upload Binary
         with:
-          name: Cotevalentine-Binary
+          name: Cotevalentines2023
           path: ./artifacts/cotevalentines*
   build_docker_image:
     runs-on: ubuntu-latest
@@ -55,8 +55,8 @@ jobs:
       - uses: actions/download-artifact@v2
         name: Download release artifact
         with:
-          name: cotevalentines
-          path: ./docker/cotevalentines
+          name: Cotevalentines2023
+          path: ./docker/Cotevalentines2023
 
       - shell: bash
         name: Copy Dockerfile
