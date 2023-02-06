@@ -83,7 +83,7 @@ impl TryFrom<&ApplicationCommandInteraction> for Recipient {
             .to_owned(),
             is_real: as_boolean(
                 options
-                    .get(2)
+                    .get(1)
                     .ok_or(format!("we dont know if the person is real!"))?
                     .resolved
                     .as_ref()
