@@ -88,12 +88,13 @@ jobs:
         name: Download release artifact
         with:
           name: Cotevalentines2023-Linux
-          path: ./docker/cotevalentines
+          path: ./docker
 
       - shell: bash
         name: Copy Dockerfile
         run: |
           cp ./Dockerfile ./docker
+          mv ./docker/cotevalentines-Linux ./docker/cotevalentines
           ls -lahR ./docker
 
       - name: Setup Docker buildx
