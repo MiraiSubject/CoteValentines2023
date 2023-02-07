@@ -68,7 +68,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         name: Upload Binary
         with:
-          name: Cotevalentines2023
+          name: Cotevalentines2023-${{ runner.os }}
           path: ./bin/cotevalentines*
       - uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
@@ -87,8 +87,8 @@ jobs:
       - uses: actions/download-artifact@v2
         name: Download release artifact
         with:
-          name: Cotevalentines2023
-          path: ./docker/Cotevalentines2023
+          name: Cotevalentines2023-Linux
+          path: ./docker/cotevalentines
 
       - shell: bash
         name: Copy Dockerfile
