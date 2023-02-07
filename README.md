@@ -41,7 +41,7 @@ You'll get prompted to enter a recipient, the contents of your letter and whethe
 - It also won't send until you actually tell it whether you want it to be anonymous or not.
 - After you're done typing in (or pasting) your letter, you can press enter to send it to the bot, where it will be stored in an SQLite Database.
   
-Submitted letters will automatically get logged to a specified channel specified in your environment. 
+Submitted letters will automatically get logged to a channel specified in your environment. 
 
 By using the `/publish #channel` command, the messages submitted by users will be published in the specified channel with anonymity preserved.
 
