@@ -34,11 +34,19 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --release --all-features
+          args: --release --all-features --frozen
+
       - shell: bash
+        if: matrix.os == 'linux-latest' || matrix.os == 'macos-latest'
         run: |
-          mkdir artifacts
-          mv ./target/release/cotevalentines ./artifacts
+          mkdir bin
+          mv ./target/release/cotevalentines ./bin/cotevalentines-${{ runner.os }}
+
+      - shell: bash
+        if: matrix.os == 'windows-latest'
+        run: |
+          mkdir bin
+          mv ./target/release/cotevalentines.exe ./bin/cotevalentines-${{ runner.os }}.exe
 
       - name: Run UPX
         uses: crazy-max/ghaction-upx@v2
@@ -47,18 +55,18 @@ jobs:
         with:
           version: latest
           files: |
-            ./artifacts/cotevalentines
+            ./bin/cotevalentines
           # args: -fq
-  
+
       - uses: actions/upload-artifact@v3
         name: Upload Binary
         with:
           name: Cotevalentines2023
-          path: ./artifacts/cotevalentines*
+          path: ./bin/cotevalentines*
       - uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: ./artifacts/cotevalentines*
+          files: ./bin/cotevalentines*
   build_docker_image:
     runs-on: ubuntu-latest
     needs: build_matrix
