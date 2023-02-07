@@ -1,6 +1,6 @@
 [package]
 name = "cotevalentines"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
 repository = "https://github.com/MiraiSubject/CoteValentines2023"
 license = "MIT"
@@ -11,7 +11,6 @@ license = "MIT"
 tokio = { version = "1.21.2", features = ["macros", "rt-multi-thread"] }
 dotenv = "0.15.0"
 diesel_migrations = {version = "2.0.0", features = ["sqlite"]}
-rand = "0.8.5"
 chrono = "0.4.23"
 ellipse = "0.2.0"
 random_color = "0.6.1"

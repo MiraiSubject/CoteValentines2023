@@ -110,7 +110,7 @@ pub async fn handle_modal(
 }
 
 fn delete_letter(to_delete: MessageId, conn: &mut SqliteConnection) -> Result<Letter, String> {
-    use crate::schema::letters::dsl::*;
+    use crate::schema::letters::dsl::{letters, message_id};
 
     diesel::delete(letters.filter(message_id.eq(to_delete.to_string())))
         .returning(all_columns)
