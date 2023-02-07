@@ -18,6 +18,7 @@ pub async fn log_letter(ctx: &Context, letter: &ValentineLetter, audit_channel: 
                     format!("From {} to {}", letter.sender, letter.recipient)
                 })
                 .description(&letter.letter)
+                .field("Author ID", &letter.sender_id, true)
                 .footer(|f| f.text("2023 Classroom of the Elite Valentine's Event"))
         })
         .components(|components| {
