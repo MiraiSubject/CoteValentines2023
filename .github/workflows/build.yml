@@ -94,7 +94,7 @@ jobs:
         name: Copy Dockerfile
         run: |
           cp ./Dockerfile ./docker
-          ls -lah ./docker/*/*/*
+          ls -lahR ./docker
 
       - name: Setup Docker buildx
         uses: docker/setup-buildx-action@v2
