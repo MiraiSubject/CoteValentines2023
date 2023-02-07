@@ -25,7 +25,7 @@ use super::{as_boolean, as_string};
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
         .name("sendletter")
-        .description("A ping command")
+        .description("Send a letter to your valentine! (max 2 letters allowed)")
         .create_option(|option| {
             option
                 .name("recipient")
