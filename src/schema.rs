@@ -7,7 +7,7 @@ diesel::table! {
         sender -> Text,
         anon -> Bool,
         content -> Text,
-        message_id -> Text,
+        message_id -> Nullable<Text>,
         sender_id -> Text,
     }
 }
