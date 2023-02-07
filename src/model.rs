@@ -1,4 +1,4 @@
-use crate::schema::*;
+use crate::schema::{letters, recipients};
 use diesel::prelude::*;
 
 #[derive(Queryable)]

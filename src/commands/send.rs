@@ -59,7 +59,7 @@ fn user_can_send_letter(
     conn: &mut SqliteConnection,
     letter: &ValentineLetter,
 ) -> Result<bool, DatabaseProblem> {
-    use crate::schema::letters::dsl::*;
+    use crate::schema::letters::dsl::{letters, sender};
 
     let letter_count: i64 = letters
         .filter(sender.eq(&letter.sender))
@@ -79,8 +79,8 @@ fn add_letter_to_user(
     letter: &ValentineLetter,
     log_message: Option<&Message>,
 ) -> Result<(), DatabaseProblem> {
-    use crate::model::*;
-    use crate::schema::letters::dsl::*;
+    use crate::model::NewLetter;
+    use crate::schema::letters::dsl::letters;
 
     let letter = NewLetter {
         sender: &letter.sender,
@@ -115,13 +115,13 @@ pub async fn run(
         let log_message = if let Some(log_channel) = env::var("AUDIT_CHANNEL_ID")
             .map_err(|e| e.to_string())
             .and_then(|id_as_str| id_as_str.parse::<u64>().map_err(|e| e.to_string()))
-            .map(|id_as_u64| ChannelId(id_as_u64))
+            .map(ChannelId)
             .map_or_else(
                 |e| {
                     println!("letter not logged: no audit channel specified!\n{e}");
                     None
                 },
-                |v| Some(v),
+                Some,
             )
         {
             Some(
@@ -147,7 +147,7 @@ pub async fn complete(
     ctx: &Context,
     db_conn: &mut SqliteConnection,
 ) -> Result<(), &'static str> {
-    use crate::schema::recipients::dsl::*;
+    use crate::schema::recipients::dsl::{fullname, recipients};
 
     let up_to_now = as_string(
         interaction
@@ -164,7 +164,7 @@ pub async fn complete(
     interaction
         .create_autocomplete_response(ctx, |response| {
             let names: Vec<String> = recipients
-                .filter(fullname.like(format!("%{}%", up_to_now)))
+                .filter(fullname.like(format!("%{up_to_now}%")))
                 .select(fullname)
                 .load(db_conn)
                 .unwrap();

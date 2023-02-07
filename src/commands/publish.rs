@@ -12,8 +12,8 @@ use serenity::{
 };
 use tokio::time::{sleep, Duration};
 
-use crate::model::*;
-use crate::schema::letters::dsl::*;
+use crate::model::Letter;
+use crate::schema::letters::dsl::letters;
 
 impl Letter {
     fn build_embed<'a>(&self, e: &'a mut CreateEmbed) -> &'a mut CreateEmbed {
