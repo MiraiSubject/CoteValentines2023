@@ -11,11 +11,11 @@ pub async fn log_letter(ctx: &Context, letter: &ValentineLetter, audit_channel: 
             embed
                 .title(if letter.anon {
                     format!(
-                        "ANONYMOUSLY SENT: From {} to {}",
+                        "Sent anonymously by {} to {}",
                         letter.sender, letter.recipient
                     )
                 } else {
-                    format!("From {} to {}", letter.sender, letter.recipient)
+                    format!("Sent by {} to {}", letter.sender, letter.recipient)
                 })
                 .description(&letter.letter)
                 .field("Author ID", &letter.sender_id, true)

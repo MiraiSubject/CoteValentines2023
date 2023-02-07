@@ -127,8 +127,8 @@ pub async fn run(
             Some(
                 log_letter(ctx, &letter, log_channel)
                     .await
-                    .map_err(|_| "Something went wrong: couldn't log message")?,
-            )
+                    .map_err(|_| "Something went wrong")?
+                )
         } else {
             None
         };

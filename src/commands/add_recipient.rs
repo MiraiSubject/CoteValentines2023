@@ -28,7 +28,7 @@ pub async fn run(
     insert_into(recipients)
         .values(&new)
         .execute(db_conn)
-        .map_err(|_| "Something went wrong!?".to_owned())?;
+        .map_err(|e| format!("Something went wrong while adding person: \n{e}"))?;
 
     Ok(Some(format!(
         "Done adding {} person {}",

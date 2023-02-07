@@ -44,11 +44,11 @@ pub async fn run(
             response.kind(InteractionResponseType::DeferredChannelMessageWithSource)
         })
         .await
-        .map_err(|_| "cant send a response???")?;
+        .map_err(|e| format!("Error while sending a response:\n ```{e:?}```"))?;
 
     let found_letters = letters
         .load::<Letter>(db_conn)
-        .map_err(|_| "database error".to_owned())?;
+        .map_err(|e| format!("Error while connecting to database:\n ```{e:?}```"))?;
 
     const MAX_RUNTIME: Duration = Duration::from_secs(60 * 10);
     const MAX_DELAY_PER_LETTER: Duration = Duration::from_secs(5);
