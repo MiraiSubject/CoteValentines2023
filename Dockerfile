@@ -15,7 +15,7 @@ RUN groupadd $APP_USER \
 COPY ./cotevalentines ${APP}
 
 WORKDIR ${APP}
-
+CMD chmod +x ./cotevalentines
 ENV DATABASE_URL=./db/sqlite.db
-VOLUME [ "./db" ]
+VOLUME [ "/usr/src/app/db" ]
 CMD [ "DATABASE_URL=${DATABASE_URL} ./cotevalentines" ]
