@@ -147,7 +147,6 @@ dependencies = [
  "diesel_migrations",
  "dotenv",
  "ellipse",
- "rand 0.8.5",
  "random_color",
  "serenity",
  "tokio",
