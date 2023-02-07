@@ -17,7 +17,7 @@ jobs:
     strategy:
       matrix:
         # Maybe we want to have executables for all platforms just to test this?
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
         rust: [stable]
     runs-on: ${{ matrix.os }}
     steps:
