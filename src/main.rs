@@ -40,7 +40,7 @@ impl EventHandler for Handler {
             Interaction::ApplicationCommand(command) => {
                 // println!("Received command interaction: {:#?}", command);
 
-                use commands::*;
+                use commands::{add_recipient, publish, send};
 
                 let result = match command.data.name.as_str() {
                     // "ping" => commands::ping::run(&command.data.options),
@@ -69,7 +69,7 @@ impl EventHandler for Handler {
                             })
                             .await
                         {
-                            println!("Cannot respond to slash command: {}", why);
+                            println!("Cannot respond to slash command: {why}");
                         }
                     }
                 };
@@ -131,7 +131,16 @@ impl EventHandler for Handler {
 
         println!(
             "I now have the following guild slash commands: {}",
-            commands.iter().map(|command| format!("\n- \"{}\" ({} options): {}", command.name, command.options.len(), command.description)).reduce(|acc, val| acc + &val).unwrap()
+            commands
+                .iter()
+                .map(|command| format!(
+                    "\n- \"{}\" ({} options): {}",
+                    command.name,
+                    command.options.len(),
+                    command.description
+                ))
+                .reduce(|acc, val| acc + &val)
+                .unwrap()
         );
     }
 }
@@ -159,7 +168,7 @@ async fn main() {
                 .values(
                     var.split(':')
                         .map(|name| Recipient {
-                            fullname: name.replace('_', " ").to_owned(),
+                            fullname: name.replace('_', " "),
                             is_real: false,
                         })
                         .collect::<Vec<_>>(),
@@ -187,6 +196,6 @@ async fn main() {
     // Shards will automatically attempt to reconnect, and will perform
     // exponential backoff until it reconnects.
     if let Err(why) = client.start().await {
-        println!("Client error: {:?}", why);
+        println!("Client error: {why:?}");
     }
 }

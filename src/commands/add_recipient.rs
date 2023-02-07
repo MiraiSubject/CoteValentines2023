@@ -16,8 +16,8 @@ use serenity::{
 
 use super::{as_boolean, as_string};
 
-use crate::model::*;
-use crate::schema::recipients::dsl::*;
+use crate::model::Recipient;
+use crate::schema::recipients::dsl::recipients;
 
 pub async fn run(
     command: &ApplicationCommandInteraction,
@@ -28,7 +28,7 @@ pub async fn run(
     insert_into(recipients)
         .values(&new)
         .execute(db_conn)
-        .map_err(|_| "Something went wrong!?".to_owned())?;
+        .map_err(|e| format!("Something went wrong while adding person: \n{e}"))?;
 
     Ok(Some(format!(
         "Done adding {} person {}",
@@ -80,11 +80,11 @@ impl TryFrom<&ApplicationCommandInteraction> for Recipient {
                     .ok_or("Name object expected".to_owned())?,
             )
             .map_err(|_| "Name is not string".to_owned())?
-            .to_owned(),
+            .clone(),
             is_real: as_boolean(
                 options
                     .get(1)
-                    .ok_or(format!("we dont know if the person is real!"))?
+                    .ok_or("we dont know if the person is real!".to_string())?
                     .resolved
                     .as_ref()
                     .ok_or("Expected boolean object".to_owned())?,

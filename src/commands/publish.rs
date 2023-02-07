@@ -1,26 +1,19 @@
 use diesel::prelude::*;
 use diesel::SqliteConnection;
 use serenity::builder::CreateEmbed;
-use serenity::model::prelude::ChannelType;
 
 use serenity::model::prelude::interaction::InteractionResponseType;
 use serenity::{
     builder::CreateApplicationCommand,
     model::{
-        prelude::{
-            command::CommandOptionType,
-            interaction::application_command::{
-                ApplicationCommandInteraction, CommandDataOptionValue,
-            },
-        },
-        Permissions,
+        prelude::interaction::application_command::ApplicationCommandInteraction, Permissions,
     },
     prelude::Context,
 };
 use tokio::time::{sleep, Duration};
 
-use crate::model::*;
-use crate::schema::letters::dsl::*;
+use crate::model::Letter;
+use crate::schema::letters::dsl::letters;
 
 impl Letter {
     fn build_embed<'a>(&self, e: &'a mut CreateEmbed) -> &'a mut CreateEmbed {
@@ -45,81 +38,58 @@ pub async fn run(
     ctx: &Context,
     db_conn: &mut SqliteConnection,
 ) -> Result<Option<String>, String> {
-    if let CommandDataOptionValue::Channel(channel) = command
-        .data
-        .options
-        .get(0)
-        .ok_or("No channel found".to_owned())?
-        .resolved
-        .as_ref()
-        .ok_or("Expected channel object".to_owned())?
-    {
-        let ChannelType::Text = channel.kind else {
-            return Err("Bad channel type".to_owned())
-        };
+    // first, deferred reply to be allowed to take longer:
+    command
+        .create_interaction_response(ctx, |response| {
+            response.kind(InteractionResponseType::DeferredChannelMessageWithSource)
+        })
+        .await
+        .map_err(|e| format!("Error while sending a response:\n ```{e:?}```"))?;
 
-        // first, deferred reply to be allowed to take longer:
-        command
-            .create_interaction_response(ctx, |response| {
-                response.kind(InteractionResponseType::DeferredChannelMessageWithSource)
-            })
+    let found_letters = letters
+        .load::<Letter>(db_conn)
+        .map_err(|e| format!("Error while connecting to database:\n ```{e:?}```"))?;
+
+    const MAX_RUNTIME: Duration = Duration::from_secs(60 * 10);
+    const MAX_DELAY_PER_LETTER: Duration = Duration::from_secs(5);
+
+    let max_delay = MAX_DELAY_PER_LETTER.min(Duration::from_millis(
+        (MAX_RUNTIME.as_millis() / found_letters.len() as u128) as u64,
+    ));
+
+    let channel_id = command.channel_id;
+
+    let typing = channel_id
+        .start_typing(&ctx.http)
+        .map_err(|e| format!("Error sending typing event.\n ```{e:?}```"))?;
+
+    for letter in found_letters {
+        // wait a bit
+        sleep(max_delay).await;
+        // send embed and stop typing
+
+        let ret = channel_id
+            .send_message(ctx, |m| m.embed(|embed| letter.build_embed(embed)))
             .await
-            .map_err(|_| "cant send a response???")?;
+            .map_err(|e| format!("Error sending a message:\n```{e:?}```"))?;
 
-        let found_letters = letters
-            .load::<Letter>(db_conn)
-            .map_err(|_| "database error".to_owned())?;
-
-        const MAX_RUNTIME: Duration = Duration::from_secs(60 * 10);
-        const MAX_DELAY_PER_LETTER: Duration = Duration::from_secs(5);
-
-        let max_delay = MAX_DELAY_PER_LETTER.min(Duration::from_millis(
-            (MAX_RUNTIME.as_millis() / found_letters.len() as u128) as u64,
-        ));
-
-        let channel_id = channel.id;
-
-        let typing = channel_id
-            .start_typing(&ctx.http)
-            .map_err(|e| format!("Error sending typing event.\n ```{e:?}```"))?;
-
-        for letter in found_letters {
-            // wait a bit
-            sleep(max_delay).await;
-            // send embed and stop typing
-
-            let ret = channel_id
-                .send_message(ctx, |m| m.embed(|embed| letter.build_embed(embed)))
-                .await
-                .map_err(|e| format!("Error sending a message:\n```{e:?}```"))?;
-
-            dbg!(ret);
-        }
-
-        let _ = typing.stop();
-
-        command
-            .edit_original_interaction_response(ctx, |edit| edit.content("Done"))
-            .await
-            .unwrap();
-
-        Ok(None)
-    } else {
-        Err("No channel found".to_owned())
+        dbg!(ret);
     }
+
+    let _ = typing.stop();
+
+    command
+        .edit_original_interaction_response(ctx, |edit| edit.content("Done"))
+        .await
+        .unwrap();
+
+    Ok(None)
 }
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
         .name("publish")
         .description("sends all letters to a channel")
-        .create_option(|option| {
-            option
-                .name("target")
-                .description("Channel to send to, defaults to current")
-                .kind(CommandOptionType::Channel)
-                .required(true)
-        })
         .dm_permission(false)
         .default_member_permissions(Permissions::MANAGE_MESSAGES)
 }

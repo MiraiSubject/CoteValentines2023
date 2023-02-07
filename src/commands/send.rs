@@ -1,3 +1,5 @@
+use std::env;
+
 use diesel::prelude::*;
 
 use serenity::{
@@ -9,7 +11,7 @@ use serenity::{
                 application_command::ApplicationCommandInteraction,
                 autocomplete::AutocompleteInteraction,
             },
-            Message,
+            ChannelId, Message,
         },
         Permissions,
     },
@@ -23,7 +25,7 @@ use super::{as_boolean, as_string};
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
         .name("sendletter")
-        .description("A ping command")
+        .description("Send a letter to your valentine! (max 2 letters allowed)")
         .create_option(|option| {
             option
                 .name("recipient")
@@ -57,7 +59,7 @@ fn user_can_send_letter(
     conn: &mut SqliteConnection,
     letter: &ValentineLetter,
 ) -> Result<bool, DatabaseProblem> {
-    use crate::schema::letters::dsl::*;
+    use crate::schema::letters::dsl::{letters, sender};
 
     let letter_count: i64 = letters
         .filter(sender.eq(&letter.sender))
@@ -75,17 +77,17 @@ fn user_can_send_letter(
 fn add_letter_to_user(
     conn: &mut SqliteConnection,
     letter: &ValentineLetter,
-    log_message: &Message,
+    log_message: Option<&Message>,
 ) -> Result<(), DatabaseProblem> {
-    use crate::model::*;
-    use crate::schema::letters::dsl::*;
+    use crate::model::NewLetter;
+    use crate::schema::letters::dsl::letters;
 
     let letter = NewLetter {
         sender: &letter.sender,
         recipient: &letter.recipient,
         anon: letter.anon,
         content: &letter.letter,
-        message_id: &log_message.id.to_string(),
+        message_id: log_message.map(|msg| msg.id.to_string()),
         sender_id: &letter.sender_id,
     };
 
@@ -110,11 +112,27 @@ pub async fn run(
         .map_err(|_| "Something went very wrong.".to_owned())?;
 
     Ok(Some(if can_send {
-        let log_message = log_letter(ctx, &letter)
-            .await
-            .map_err(|_| "Something went wrong: couldn't log message")?;
+        let log_message = if let Some(log_channel) = env::var("AUDIT_CHANNEL_ID")
+            .map_err(|e| e.to_string())
+            .and_then(|id_as_str| id_as_str.parse::<u64>().map_err(|e| e.to_string()))
+            .map(ChannelId)
+            .map_or_else(
+                |e| {
+                    println!("letter not logged: no audit channel specified!\n{e}");
+                    None
+                },
+                Some,
+            ) {
+            Some(
+                log_letter(ctx, &letter, log_channel)
+                    .await
+                    .map_err(|_| "Something went wrong")?,
+            )
+        } else {
+            None
+        };
 
-        add_letter_to_user(db_conn, &letter, &log_message)
+        add_letter_to_user(db_conn, &letter, log_message.as_ref())
             .map_err(|_| "Something went very wrong.".to_owned())?;
 
         "Thank you for your message, it has been recorded.".to_owned()
@@ -128,7 +146,7 @@ pub async fn complete(
     ctx: &Context,
     db_conn: &mut SqliteConnection,
 ) -> Result<(), &'static str> {
-    use crate::schema::recipients::dsl::*;
+    use crate::schema::recipients::dsl::{fullname, recipients};
 
     let up_to_now = as_string(
         interaction
@@ -145,7 +163,7 @@ pub async fn complete(
     interaction
         .create_autocomplete_response(ctx, |response| {
             let names: Vec<String> = recipients
-                .filter(fullname.like(format!("%{}%", up_to_now)))
+                .filter(fullname.like(format!("%{up_to_now}%")))
                 .select(fullname)
                 .load(db_conn)
                 .unwrap();
