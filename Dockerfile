@@ -1,21 +1,17 @@
-FROM debian:stable
-ARG APP=/usr/src/app
+FROM rust:1.67 as builder
+WORKDIR /usr/src/cotevalentines
+COPY . .
+RUN cargo install --path .
 
-RUN apt-get update \
-    && apt-get install -y ca-certificates tzdata \
-    && rm -rf /var/lib/apt/lists/*
-
-ENV TZ=Etc/UTC \
-    APP_USER=appuser
-
-RUN groupadd $APP_USER \
-    && useradd -g $APP_USER $APP_USER \
-    && mkdir -p ${APP}
-
-COPY ./cotevalentines ${APP}
-
+FROM debian:bullseye-slim
+RUN apt-get update && apt-get install -y ca-certificates tzdata && rm -rf /var/lib/apt/lists/*
+ARG APP=/app
+RUN mkdir -p ${APP}
 WORKDIR ${APP}
-RUN chmod +x ./cotevalentines
-ENV DATABASE_URL=./db/sqlite.db
-VOLUME [ "/usr/src/app/db" ]
-CMD [ "/usr/src/app/cotevalentines" ]
+COPY --from=builder /usr/local/cargo/bin/cotevalentines /app/cotevday
+
+ENV TZ=Etc/UTC
+
+ENV DATABASE_URL=/app/db/sqlite.db
+VOLUME [ "/app/db" ]
+CMD [ "/app/cotevday" ]
