@@ -1,6 +1,6 @@
 # Valentine's Event for You-Zitsu (COTE) Server 2023
 
-We made this discord bot for the Valentine's Event on the COTE Community Discord server. Members can send letters to another member or to their fictional heroine of the show. 
+We made this discord bot for the Valentine's Event on the COTE Community Discord server. Members can send letters to another member or to their fictional heroine of the show. Select submissions will be read and reacted to on an episode of Podcast of the Elite.
 
 ## Requirements
 - OS:
@@ -10,7 +10,7 @@ We made this discord bot for the Valentine's Event on the COTE Community Discord
 
 You will also need this environment file `.env` next to the executable or specify these in your CLI:
 
-```
+```env
 # Specifies the location where the database will be saved
 DATABASE_URL=sqlite.db
 
@@ -23,7 +23,9 @@ DISCORD_TOKEN=
 # (optional) Recipients to list in sendletter for autocomplete
 RECIPIENTS=oralekin,Subject,Kiyotaka_Ayanokouji
 ```
-After setting up this file you can run it by doing `./Cotevalentines2023` (macOS/Linux) (`chmod +x ./Cotevalentines2023` may be required) or `& .\Cotevalentines2023.exe` (Windows)
+After setting up this file you can run it by doing `./cotevalentines-Linux`, `./cotevalentines-macOS` (`chmod +x ./cotevalentines-*` may be required) or `& .\cotevalentines-Windows.exe` (Windows).
+
+Use your background process manager of choice, be it `systemd`, Windows Services or `launchctl`, to launch it as a background service. 
 
 It is recommended to use the docker image provided in this repository for production.
 
@@ -46,3 +48,6 @@ Submitted letters will automatically get logged to a channel specified in your e
 By using the `/publish #channel` command, the messages submitted by users will be published in the specified channel with anonymity preserved.
 
 ## Compiling
+
+Inside the project directory run `cargo build` for a debug build and `cargo build --all-features --release` for a release build.
+The executable will be located in `./target/{debug|release}/cotevalentines` 
