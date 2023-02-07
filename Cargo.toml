@@ -2,6 +2,8 @@
 name = "cotevalentines"
 version = "1.0.0"
 edition = "2021"
+repository = "https://github.com/MiraiSubject/CoteValentines2023"
+license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
