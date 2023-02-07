@@ -5,7 +5,11 @@ use serenity::{
 
 use super::send::ValentineLetter;
 
-pub async fn log_letter(ctx: &Context, letter: &ValentineLetter, audit_channel: ChannelId) -> serenity::Result<Message> {
+pub async fn log_letter(
+    ctx: &Context,
+    letter: &ValentineLetter,
+    audit_channel: ChannelId,
+) -> serenity::Result<Message> {
     ChannelId::send_message(audit_channel, &ctx.http, |m| {
         m.embed(|embed| {
             embed

@@ -122,13 +122,12 @@ pub async fn run(
                     None
                 },
                 Some,
-            )
-        {
+            ) {
             Some(
                 log_letter(ctx, &letter, log_channel)
                     .await
-                    .map_err(|_| "Something went wrong")?
-                )
+                    .map_err(|_| "Something went wrong")?,
+            )
         } else {
             None
         };

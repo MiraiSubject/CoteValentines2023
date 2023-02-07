@@ -131,7 +131,16 @@ impl EventHandler for Handler {
 
         println!(
             "I now have the following guild slash commands: {}",
-            commands.iter().map(|command| format!("\n- \"{}\" ({} options): {}", command.name, command.options.len(), command.description)).reduce(|acc, val| acc + &val).unwrap()
+            commands
+                .iter()
+                .map(|command| format!(
+                    "\n- \"{}\" ({} options): {}",
+                    command.name,
+                    command.options.len(),
+                    command.description
+                ))
+                .reduce(|acc, val| acc + &val)
+                .unwrap()
         );
     }
 }

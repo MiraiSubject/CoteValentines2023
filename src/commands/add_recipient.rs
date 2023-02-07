@@ -79,7 +79,8 @@ impl TryFrom<&ApplicationCommandInteraction> for Recipient {
                     .as_ref()
                     .ok_or("Name object expected".to_owned())?,
             )
-            .map_err(|_| "Name is not string".to_owned())?.clone(),
+            .map_err(|_| "Name is not string".to_owned())?
+            .clone(),
             is_real: as_boolean(
                 options
                     .get(1)
