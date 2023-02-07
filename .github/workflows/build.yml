@@ -71,6 +71,7 @@ jobs:
           name: Cotevalentines2023-${{ runner.os }}
           path: ./bin/cotevalentines*
       - uses: softprops/action-gh-release@v1
+        continue-on-error: true
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: ./bin/cotevalentines*
