@@ -28,6 +28,10 @@ jobs:
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
+            C:\Users\runneradmin\.cargo\bin
+            C:\Users\runneradmin\.cargo\registry\index
+            C:\Users\runneradmin\.cargo\registry\cache
+            C:\Users\runneradmin\.cargo\git\db
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
@@ -55,7 +59,7 @@ jobs:
         with:
           version: latest
           files: |
-            ./bin/cotevalentines
+            ./bin/cotevalentines-${{ runner.os }}
           # args: -fq
 
       - uses: actions/upload-artifact@v3
