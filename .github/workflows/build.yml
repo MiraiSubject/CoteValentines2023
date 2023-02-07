@@ -1,5 +1,7 @@
 on:
   push:
+    paths-ignore:
+      - 'README.md'
   release:
     types: [published]
 
@@ -19,9 +21,9 @@ jobs:
         rust: [stable]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             ~/.cargo/bin/
@@ -35,6 +37,7 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
+      # Consider replacing because of https://github.com/actions-rs/cargo/issues/216
       - uses: actions-rs/cargo@v1
         with:
           command: build
