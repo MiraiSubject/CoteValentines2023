@@ -18,4 +18,4 @@ WORKDIR ${APP}
 RUN chmod +x ./cotevalentines
 ENV DATABASE_URL=./db/sqlite.db
 VOLUME [ "/usr/src/app/db" ]
-CMD [ "chmod +x /usr/src/app/cotevalentines && DATABASE_URL=${DATABASE_URL} /usr/src/app/cotevalentines" ]
+CMD [ "/usr/src/app/cotevalentines" ]
