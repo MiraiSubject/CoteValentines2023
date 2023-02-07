@@ -33,7 +33,7 @@ It is recommended to use the docker image provided in this repository for produc
 
 There are 3 commands available:
 - `/sendletter recipient: String, letter: String, anonymous: Boolean` - accessible by everyone
-- `/publish channel: Channel` - accessible by users with the Manage Messages permission
+- `/publish` - accessible by users with the Manage Messages permission
 - `/add_recipient name: String, is_real: Boolean` - accessible by users with the Administrator permission
 
 You can go to any channel where the bot is allowed or to the DMs of the bot and type `/sendletter`. 
@@ -45,7 +45,7 @@ You'll get prompted to enter a recipient, the contents of your letter and whethe
   
 Submitted letters will automatically get logged to a channel specified in your environment. 
 
-By using the `/publish #channel` command, the messages submitted by users will be published in the specified channel with anonymity preserved.
+By using the `/publis` command, the messages submitted by users will be published in the current channel with anonymity preserved.
 
 ## Compiling
 
