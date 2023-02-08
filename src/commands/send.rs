@@ -122,12 +122,13 @@ pub async fn run(
                     None
                 },
                 Some,
-            ) {
+            )
+        {
             Some(
                 log_letter(ctx, &letter, log_channel)
                     .await
-                    .map_err(|_| "Something went wrong")?,
-            )
+                    .map_err(|_| "Something went wrong")?
+                )
         } else {
             None
         };
@@ -165,6 +166,7 @@ pub async fn complete(
             let names: Vec<String> = recipients
                 .filter(fullname.like(format!("%{up_to_now}%")))
                 .select(fullname)
+                .limit(25)
                 .load(db_conn)
                 .unwrap();
 
