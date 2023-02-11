@@ -62,7 +62,7 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
                 .required(true)
         })
         .dm_permission(false)
-        .default_member_permissions(Permissions::ADMINISTRATOR)
+        .default_member_permissions(Permissions::MANAGE_GUILD)
 }
 
 impl TryFrom<&ApplicationCommandInteraction> for Recipient {
