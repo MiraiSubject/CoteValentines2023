@@ -142,6 +142,11 @@ pub async fn run(
     }))
 }
 
+pub async fn forbidden(
+) -> Result<Option<String>, String> {
+    Err("Letter submissions are disabled".to_string())
+}
+
 pub async fn complete(
     interaction: &AutocompleteInteraction,
     ctx: &Context,
