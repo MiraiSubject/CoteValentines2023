@@ -21,6 +21,7 @@ fn run_migrations(
 
 use dotenv::dotenv;
 use std::env;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use serenity::async_trait;
 use serenity::model::application::interaction::{Interaction, InteractionResponseType};
@@ -30,6 +31,7 @@ use serenity::prelude::*;
 
 pub struct Handler {
     db_pool: Pool<ConnectionManager<SqliteConnection>>,
+    letters_allowed: AtomicBool,
 }
 
 #[async_trait]
@@ -40,18 +42,31 @@ impl EventHandler for Handler {
             Interaction::ApplicationCommand(command) => {
                 // println!("Received command interaction: {:#?}", command);
 
-                use commands::{add_recipient, publish, send};
+                use commands::{add_recipient, allow_letters, publish, send};
 
                 let result = match command.data.name.as_str() {
                     // "ping" => commands::ping::run(&command.data.options),
-                    "sendletter" => {
+                    "sendletter" if self.letters_allowed.load(Ordering::SeqCst) => {
                         send::run(&command, &ctx, &mut self.db_pool.get().unwrap()).await
+                    }
+                    "sendletter" if !self.letters_allowed.load(Ordering::SeqCst) => {
+                        send::forbidden().await
                     }
                     "publish" => {
                         publish::run(&command, &ctx, &mut self.db_pool.get().unwrap()).await
                     }
                     "add_recipient" => {
                         add_recipient::run(&command, &ctx, &mut self.db_pool.get().unwrap()).await
+                    }
+                    "allow_letters" => {
+                        allow_letters::run(&command, &ctx, &mut self.db_pool.get().unwrap())
+                            .await
+                            .map(|opt| {
+                                opt.map(|(allowed, ret)| {
+                                    self.letters_allowed.store(allowed, Ordering::SeqCst);
+                                    ret
+                                })
+                            })
                     }
                     _ => Err("command not found".to_string()),
                 };
@@ -187,6 +202,7 @@ async fn main() {
                 .test_on_check_out(true)
                 .build(ConnectionManager::<SqliteConnection>::new(database_url))
                 .expect("Could not build connection pool"),
+            letters_allowed: AtomicBool::new(true),
         })
         .await
         .expect("Error creating client");
