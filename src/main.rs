@@ -140,6 +140,7 @@ impl EventHandler for Handler {
                 .create_application_command(|command| commands::send::register(command))
                 .create_application_command(|command| commands::publish::register(command))
                 .create_application_command(|command| commands::add_recipient::register(command))
+                .create_application_command(|command| commands::allow_letters::register(command))
         })
         .await
         .expect("able to set application commands");
