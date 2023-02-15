@@ -21,7 +21,7 @@ GUILD_ID=
 DISCORD_TOKEN=
 
 # (optional) Recipients to list in sendletter for autocomplete
-RECIPIENTS=oralekin,Subject,Kiyotaka_Ayanokouji
+RECIPIENTS=oralekin:Subject:Kiyotaka_Ayanokouji
 ```
 After setting up this file you can run it by doing `./cotevalentines-Linux`, `./cotevalentines-macOS` (`chmod +x ./cotevalentines-*` may be required) or `& .\cotevalentines-Windows.exe` (Windows).
 
