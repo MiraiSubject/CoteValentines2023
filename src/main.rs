@@ -42,23 +42,23 @@ impl EventHandler for Handler {
             Interaction::ApplicationCommand(command) => {
                 // println!("Received command interaction: {:#?}", command);
 
-                use commands::{add_recipient, allow_letters, publish, send};
+                use commands::{allow_letters, publish, send};
 
                 let result = match command.data.name.as_str() {
                     // "ping" => commands::ping::run(&command.data.options),
-                    "sendletter" if self.letters_allowed.load(Ordering::SeqCst) => {
+                    "sendsubmission" if self.letters_allowed.load(Ordering::SeqCst) => {
                         send::run(&command, &ctx, &mut self.db_pool.get().unwrap()).await
                     }
-                    "sendletter" if !self.letters_allowed.load(Ordering::SeqCst) => {
+                    "sendsubmission" if !self.letters_allowed.load(Ordering::SeqCst) => {
                         send::forbidden().await
                     }
                     "publish" => {
                         publish::run(&command, &ctx, &mut self.db_pool.get().unwrap()).await
                     }
-                    "add_recipient" => {
-                        add_recipient::run(&command, &ctx, &mut self.db_pool.get().unwrap()).await
-                    }
-                    "allow_letters" => {
+                    // "add_recipient" => {
+                    //     add_recipient::run(&command, &ctx, &mut self.db_pool.get().unwrap()).await
+                    // }
+                    "allow_submissions" => {
                         allow_letters::run(&command, &ctx, &mut self.db_pool.get().unwrap())
                             .await
                             .map(|opt| {
@@ -108,11 +108,6 @@ impl EventHandler for Handler {
                     }
                     _ => (),
                 }
-            }
-            Interaction::Autocomplete(interaction) => {
-                commands::send::complete(&interaction, &ctx, &mut self.db_pool.get().unwrap())
-                    .await
-                    .unwrap();
             }
             _ => (),
         }

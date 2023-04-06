@@ -9,7 +9,6 @@ use serenity::{
             command::CommandOptionType,
             interaction::{
                 application_command::ApplicationCommandInteraction,
-                autocomplete::AutocompleteInteraction,
             },
             ChannelId, Message,
         },
@@ -20,35 +19,18 @@ use serenity::{
 
 use crate::commands::log_letters::log_letter;
 
-use super::{as_boolean, as_string};
+use super::{as_string};
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
-        .name("sendletter")
-        .description("Send a letter to your valentine! (max 2 letters allowed)")
+        .name("sendsubmission")
+        .description("Submit your answer here (2 answers max)")
         .create_option(|option| {
             option
-                .name("recipient")
-                .description("The mod or heroine whom you want to send a valentine's letter to")
+                .name("submission")
+                .description("The submission you want to turn in")
                 .kind(CommandOptionType::String)
-                .min_length(1)
-                .max_length(20)
-                .required(true)
-                .set_autocomplete(true)
-        })
-        .create_option(|option| {
-            option
-                .name("letter")
-                .description("The letter that you want to send to this person!")
-                .kind(CommandOptionType::String)
-                .min_length(100)
-                .required(true)
-        })
-        .create_option(|option| {
-            option
-                .name("anonymous")
-                .description("Do you want to send this message anonymously?")
-                .kind(CommandOptionType::Boolean)
+                .min_length(5)
                 .required(true)
         })
         .dm_permission(true)
@@ -136,7 +118,7 @@ pub async fn run(
         add_letter_to_user(db_conn, &letter, log_message.as_ref())
             .map_err(|_| "Something went very wrong.".to_owned())?;
 
-        "Thank you for your message, it has been recorded.".to_owned()
+        "Thank you for your submission.".to_owned()
     } else {
         "You have already sent two messages.".to_owned()
     }))
@@ -145,45 +127,6 @@ pub async fn run(
 pub async fn forbidden(
 ) -> Result<Option<String>, String> {
     Err("Letter submissions are disabled".to_string())
-}
-
-pub async fn complete(
-    interaction: &AutocompleteInteraction,
-    ctx: &Context,
-    db_conn: &mut SqliteConnection,
-) -> Result<(), &'static str> {
-    use crate::schema::recipients::dsl::{fullname, recipients};
-
-    let up_to_now = as_string(
-        interaction
-            .data
-            .options
-            .get(0)
-            .ok_or("No recipient found")?
-            .resolved
-            .as_ref()
-            .ok_or("Expected recipient object")?,
-    )
-    .map_err(|_| "Recipient is not string")?;
-
-    interaction
-        .create_autocomplete_response(ctx, |response| {
-            let names: Vec<String> = recipients
-                .filter(fullname.like(format!("%{up_to_now}%")))
-                .select(fullname)
-                .limit(25)
-                .load(db_conn)
-                .unwrap();
-
-            for name in names {
-                response.add_string_choice(&name, &name);
-            }
-
-            response
-        })
-        .await
-        .unwrap();
-    Ok(())
 }
 
 pub struct ValentineLetter {
@@ -204,19 +147,9 @@ impl TryFrom<&ApplicationCommandInteraction> for ValentineLetter {
         let user = &value.user;
         let options = &value.data.options;
 
-        let recipient = as_string(
-            options
-                .get(0)
-                .ok_or(ParseOptionsError("No recipient found"))?
-                .resolved
-                .as_ref()
-                .ok_or(ParseOptionsError("Expected recipient object"))?,
-        )
-        .map_err(|_| ParseOptionsError("Recipient is not string"))?;
-
         let letter = as_string(
             options
-                .get(1)
+                .get(0)
                 .ok_or(ParseOptionsError("No message contents count"))?
                 .resolved
                 .as_ref()
@@ -224,23 +157,11 @@ impl TryFrom<&ApplicationCommandInteraction> for ValentineLetter {
         )
         .map_err(|_| ParseOptionsError("Letter is not string"))?;
 
-        let is_anon = as_boolean(
-            options
-                .get(2)
-                .ok_or(ParseOptionsError(
-                    "We don't know if the user wants to send anonymously",
-                ))?
-                .resolved
-                .as_ref()
-                .ok_or(ParseOptionsError("Expected boolean object"))?,
-        )
-        .map_err(|_| ParseOptionsError("Anonymous is not boolean"))?;
-
         Ok(ValentineLetter {
             sender: user.name.clone(),
-            recipient: recipient.to_string(),
+            recipient: "".to_owned(),
             letter: letter.to_string(),
-            anon: *is_anon,
+            anon: false,
             sender_id: value.user.id.to_string(),
         })
     }

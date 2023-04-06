@@ -23,7 +23,7 @@ impl Letter {
             format!("From {} to {}", self.sender.clone(), self.recipient.clone())
         })
         .description(self.content.clone())
-        .footer(|f| f.text("2023 Classroom of the Elite Valentine's Event"))
+        .footer(|f| f.text("2023 COTE April Fools Event"))
         .colour({
             use random_color::{Color, RandomColor};
 

@@ -99,7 +99,7 @@ pub async fn handle_modal(
                     ),
                     false,
                 )
-                .footer(|f| f.text("2023 Classroom of the Elite Valentine's Event"))
+                .footer(|f| f.text("2023 COTE April Fools Event"))
                 .color((255, 0, 0))
             })
         })

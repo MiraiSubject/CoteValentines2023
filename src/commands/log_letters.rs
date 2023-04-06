@@ -19,11 +19,11 @@ pub async fn log_letter(
                         letter.sender, letter.recipient
                     )
                 } else {
-                    format!("Sent by {} to {}", letter.sender, letter.recipient)
+                    format!("Sent by {}", letter.sender)
                 })
                 .description(&letter.letter)
                 .field("Author ID", &letter.sender_id, true)
-                .footer(|f| f.text("2023 Classroom of the Elite Valentine's Event"))
+                .footer(|f| f.text("2023 COTE April Fools Event"))
         })
         .components(|components| {
             components.create_action_row(|row| {
