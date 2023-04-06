@@ -77,7 +77,7 @@ jobs:
     permissions:
       contents: read
       packages: write
-    if: github.ref == 'refs/heads/release' || github.ref == 'refs/heads/docker'
+    if: github.ref == 'refs/heads/release' || github.ref == 'refs/heads/docker' || github.ref == 'refs/heads/april-fools-event'
     steps:
       - uses: actions/checkout@v2
 
