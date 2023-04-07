@@ -38,7 +38,7 @@ pub async fn run(
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
-        .name("allow_letters")
+        .name("allow_submissions")
         .description("sets whether letters are allowed")
         .create_option(|option| {
             option
